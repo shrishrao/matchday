@@ -1,0 +1,12 @@
+# ===== Line endings =====
+# Store text files with LF in git so diffs stay clean on Windows and inside Linux containers.
+* text=auto eol=lf
+
+# Windows-only scripts keep CRLF.
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+
+# ===== Binary files =====
+*.png binary
+*.gif binary
+*.jpg binary
