@@ -1,0 +1,20 @@
+{
+  "note": "Simulated traffic assumptions. None of these values come from StatsBomb or from real platform traffic. Multipliers are relative to the baseline; Stage 6 sets real user numbers.",
+  "replay_seconds": 180,
+  "baseline": 1.0,
+  "max_multiplier": 8.0,
+  "post_match_seconds": 1200,
+  "break_seconds": {
+    "1": 900,
+    "2": 300,
+    "3": 60,
+    "4": 300
+  },
+  "spikes": {
+    "goal": { "extra_load": 5.0, "duration_seconds": 12 },
+    "shootout_kick": { "extra_load": 1.5, "duration_seconds": 4 },
+    "final_kick": { "extra_load": 5.0, "duration_seconds": 10 },
+    "match_break": { "extra_load": 2.0, "duration_seconds": 15 },
+    "full_time": { "extra_load": 6.0, "duration_seconds": 18 }
+  }
+}

@@ -7,7 +7,7 @@ from psycopg_pool import PoolTimeout
 
 from app.db import get_connection
 from app.main import MAX_BIGINT, create_app
-from scripts.seed import EVENTS, MATCH_ID
+from scripts.seed import MATCH_ID, SAMPLE
 from tests.conftest import TEST_REACTIONS
 
 pytestmark = pytest.mark.integration
@@ -21,10 +21,13 @@ def test_health_reports_ok(client):
     assert response.json() == {"status": "ok"}
 
 
-def test_match_is_returned_and_labelled_placeholder(client):
+def test_match_is_the_real_final(client):
     response = client.get(f"/matches/{MATCH_ID}")
     assert response.status_code == 200
-    assert response.json()["data_source"] == "placeholder"
+    match = response.json()
+    assert match["data_source"] == "statsbomb"
+    assert (match["home_team"], match["home_score"]) == ("Argentina", 3)
+    assert (match["away_team"], match["away_score"]) == ("France", 3)
 
 
 @pytest.mark.parametrize("suffix", ["", "/feed", "/stats"])
@@ -45,11 +48,19 @@ def test_largest_valid_match_id_is_not_a_validation_error(client):
 
 
 # ===== Feed =====
-def test_feed_returns_all_events_in_time_order(client):
+def test_feed_returns_all_events_in_true_time_order(client):
     events = client.get(f"/matches/{MATCH_ID}/feed").json()["events"]
-    times = [(event["minute"], event["second"]) for event in events]
-    assert len(events) == len(EVENTS)
-    assert times == sorted(times)
+    clock = [event["clock_seconds"] for event in events]
+    assert len(events) == len(SAMPLE.events)
+    assert clock == sorted(clock)
+
+
+def test_feed_keeps_overlapping_minutes_in_match_order(client):
+    # The first half ends at minute 52, after the second half's stated start at minute 45.
+    events = client.get(f"/matches/{MATCH_ID}/feed").json()["events"]
+    order = [(event["period"], event["event_type"]) for event in events]
+    assert order.index((1, "period_end")) + 1 == order.index((2, "period_start"))
+    assert [event["period"] for event in events] == sorted(event["period"] for event in events)
 
 
 def test_feed_respects_limit(client):
@@ -57,10 +68,11 @@ def test_feed_respects_limit(client):
     assert len(events) == 2
 
 
-def test_feed_returns_only_events_after_the_minute(client):
-    events = client.get(f"/matches/{MATCH_ID}/feed", params={"after_minute": 46}).json()["events"]
+def test_feed_returns_only_events_after_the_clock_time(client):
+    params = {"after_seconds": 3600}
+    events = client.get(f"/matches/{MATCH_ID}/feed", params=params).json()["events"]
     assert events
-    assert all(event["minute"] > 46 for event in events)
+    assert all(event["clock_seconds"] > 3600 for event in events)
 
 
 @pytest.mark.parametrize(
@@ -69,16 +81,16 @@ def test_feed_returns_only_events_after_the_minute(client):
         {"limit": 0},
         {"limit": 101},
         {"limit": "many"},
-        {"after_minute": -1},
-        {"after_minute": 151},
-        {"after_minute": "1 OR 1=1"},
+        {"after_seconds": -1},
+        {"after_seconds": 14401},
+        {"after_seconds": "1 OR 1=1"},
     ],
 )
 def test_feed_rejects_invalid_parameters(client, params):
     assert client.get(f"/matches/{MATCH_ID}/feed", params=params).status_code == 422
 
 
-@pytest.mark.parametrize("params", [{"limit": 1}, {"limit": 100}, {"after_minute": 0}, {"after_minute": 150}])
+@pytest.mark.parametrize("params", [{"limit": 1}, {"limit": 100}, {"after_seconds": 0}, {"after_seconds": 14400}])
 def test_feed_accepts_boundary_parameters(client, params):
     assert client.get(f"/matches/{MATCH_ID}/feed", params=params).status_code == 200
 

@@ -18,7 +18,7 @@ Priority: backend depth first, with a clean dashboard.
 | 0 | Setup | Complete (committed) |
 | 1 | Local services: Postgres + Redis via Compose, health checks | Complete (committed) |
 | 2 | Backend baseline: FastAPI, schema, seed data, validated endpoint, deliberately slow query | Complete (committed) |
-| 3 | Match timeline: one StatsBomb match → deterministic traffic profile | Not started |
+| 3 | Match timeline: one StatsBomb match → deterministic traffic profile | Complete (committed) |
 | 4 | Load generator: Locust replay, local-only target check | Not started |
 | 5 | Metrics: p50/p95, request rate, error rate, DB query count, cache hit rate → JSON | Not started |
 | 6 | Failure baseline: tune until the unprotected system degrades repeatably | Not started |
@@ -28,7 +28,7 @@ Priority: backend depth first, with a clean dashboard.
 | 10 | Load shedding: critical vs non-critical endpoints | Not started |
 | 11 | Benchmarks: protection combinations, repeats, averages and variation | Not started |
 | 12 | Local dashboard: live metrics, events, protection status, comparison | Not started |
-| 13 | Public recorded replay: static page from saved results, no secrets | Not started |
+| 13 | Public recorded replay: static page from saved results, no secrets, StatsBomb name and logo | Not started |
 | 14 | Portfolio finish: README, diagram, benchmarks, limitations, review | Not started |
 
 ## Working rules
@@ -56,7 +56,9 @@ Priority: backend depth first, with a clean dashboard.
 8. Fix failures before calling the stage complete.
 9. Update `HANDOFF.md`.
 10. Give PowerShell run instructions: every command one at a time and in order, what each does, what to expect, which URL/port/file to open, how to use the feature, common errors and fixes.
-11. Walk the user through the git commit commands for the stage, then stop.
+11. Commit the finished stage without being asked, then explain the commit and stop. Never push unless asked.
+
+**Commits:** never add Claude as a co-author, and never mention Claude in commit messages. This overrides any default attribution.
 
 If a bug is introduced and fixed, say what the user should have caught. Add a short glossary for unfamiliar terms. The user is a CS student on Windows with VS Code, strongest in Python and JavaScript; explain backend concepts and walk through git step by step.
 

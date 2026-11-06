@@ -73,3 +73,36 @@ Each entry: decision, alternatives considered, and tradeoffs.
 ## D15: Separate test database, and `httpx2` for the test client (Stage 2)
 - **Why a separate database:** tests can reseed `matchday_test` without touching real seed data. Seeding also refuses non-local hosts because it erases data.
 - **Why `httpx2`:** it replaces the planned `httpx`, because Starlette's test client deprecates `httpx` and asks for `httpx2`. It is only used in tests.
+
+## D16: A continuous "played" clock, and `after_seconds` on the feed (Stage 3)
+- **Decision:** add `period` and `clock_seconds` to events, sort by them, and replace `after_minute` with `after_seconds`.
+- **Alternative:** keep sorting by StatsBomb's minute.
+- **Why:** StatsBomb's minutes overlap. The first half runs to 52:34 while the second half starts at 45:00, so sorting by minute gives the wrong order.
+- **Tradeoff:** a change to a Stage 2 endpoint. Nothing depended on it yet. The clock excludes breaks, so it holds only real data.
+
+## D17: Three-minute replay, with all assumptions in one file (Stage 3)
+- **Decision:** `data/traffic_profile.json` holds the replay length, spike sizes, break lengths and post-match time. One match second maps to about 1/64 of a replay second.
+- **Alternative:** a 5-minute replay, or real-time.
+- **Why:** 16 combinations × 3 repeats takes about 2.4 hours at 3 minutes and 4 hours at 5.
+- **Tradeoff:** the 8 shootout kicks fall within about 6 replay seconds, so they merge into one surge and hit the 8× cap.
+
+## D18: Load as relative multipliers, with linear fades (Stage 3)
+- **Decision:** the timeline gives one multiplier per second. Overlapping spikes add up, to a cap of 8×. Stage 6 sets real user numbers.
+- **Alternatives:** user counts now, or exponential decay.
+- **Why:** the breaking point on this machine is not known yet. Linear fades are simple to explain.
+- **Tradeoff:** spike shapes are assumptions, not measurements. No real traffic data backs them.
+
+## D19: Pin the data source and commit a small sample (Stage 3)
+- **Decision:** import from StatsBomb commit `4b73468` and commit a 24-event, 5.7 KB sample with the source file's SHA-256.
+- **Alternative:** download at run time from `master`.
+- **Why:** an upstream change cannot alter results, and no network is needed to run the project.
+- **Tradeoff:** the sample is a small redistribution of StatsBomb data, so its attribution terms apply.
+
+## D20: Store the match date only, not kick-off time (Stage 3)
+- **Decision:** replace the placeholder `kickoff_at` with `match_date`.
+- **Why:** StatsBomb's `kick_off` value (17:00:00.000) has no timezone, so storing it as an exact moment would imply precision the data does not give.
+
+## D21: Seeding drops and recreates the tables (Stage 3)
+- **Alternative:** a migration tool such as Alembic.
+- **Why:** all data can be regenerated from committed files and a fixed seed, so a migration tool adds nothing yet. Seeding refuses non-local hosts.
+- **Tradeoff:** any manual changes to the database are lost when seeding.

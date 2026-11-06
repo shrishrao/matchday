@@ -6,10 +6,10 @@ from pydantic import ValidationError
 from app.config import Settings
 from scripts.explain_slow_query import explain_stats
 from scripts.seed import (
-    EVENTS,
     FAN_COUNT,
     LAST_MINUTE,
     MATCH_ID,
+    SAMPLE,
     SPIKE_MINUTES,
     generate_reactions,
     require_local_host,
@@ -94,7 +94,7 @@ def test_reseeding_gives_identical_data_without_duplicates(connection):
     seed_database(connection, reactions=TEST_REACTIONS)
     second = table_fingerprint(connection)
     assert first == second
-    assert first[:3] == (1, len(EVENTS), TEST_REACTIONS)
+    assert first[:3] == (1, len(SAMPLE.events), TEST_REACTIONS)
 
 
 @pytest.mark.integration

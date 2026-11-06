@@ -1,6 +1,6 @@
 """The response formats the API promises to return."""
 
-from datetime import datetime
+from datetime import date
 from typing import Literal
 
 from pydantic import BaseModel
@@ -21,17 +21,22 @@ class MatchOut(BaseModel):
     home_team: str
     away_team: str
     competition: str
-    kickoff_at: datetime
-    data_source: Literal["placeholder", "statsbomb"]
+    season: str
+    match_date: date
+    home_score: int
+    away_score: int
+    data_source: Literal["statsbomb"]
 
 
 # ===== Feed =====
 class EventOut(BaseModel):
-    """One event in a match feed."""
+    """One event in a match feed. clock_seconds gives its true order."""
 
     id: int
+    period: int
     minute: int
     second: int
+    clock_seconds: int
     event_type: str
     team: str | None
     description: str

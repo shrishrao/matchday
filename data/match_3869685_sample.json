@@ -1,0 +1,236 @@
+{
+  "events": [
+    {
+      "description": "Period 1 starts",
+      "kind": "period_start",
+      "minute": 0,
+      "period": 1,
+      "player": null,
+      "second": 0,
+      "team": null
+    },
+    {
+      "description": "Goal from the penalty spot: Lionel Andrés Messi Cuccittini (Argentina)",
+      "kind": "goal",
+      "minute": 22,
+      "period": 1,
+      "player": "Lionel Andrés Messi Cuccittini",
+      "second": 24,
+      "team": "Argentina"
+    },
+    {
+      "description": "Goal: Ángel Fabián Di María Hernández (Argentina)",
+      "kind": "goal",
+      "minute": 35,
+      "period": 1,
+      "player": "Ángel Fabián Di María Hernández",
+      "second": 22,
+      "team": "Argentina"
+    },
+    {
+      "description": "Period 1 ends",
+      "kind": "period_end",
+      "minute": 52,
+      "period": 1,
+      "player": null,
+      "second": 34,
+      "team": null
+    },
+    {
+      "description": "Period 2 starts",
+      "kind": "period_start",
+      "minute": 45,
+      "period": 2,
+      "player": null,
+      "second": 0,
+      "team": null
+    },
+    {
+      "description": "Goal from the penalty spot: Kylian Mbappé Lottin (France)",
+      "kind": "goal",
+      "minute": 79,
+      "period": 2,
+      "player": "Kylian Mbappé Lottin",
+      "second": 24,
+      "team": "France"
+    },
+    {
+      "description": "Goal: Kylian Mbappé Lottin (France)",
+      "kind": "goal",
+      "minute": 80,
+      "period": 2,
+      "player": "Kylian Mbappé Lottin",
+      "second": 59,
+      "team": "France"
+    },
+    {
+      "description": "Period 2 ends",
+      "kind": "period_end",
+      "minute": 98,
+      "period": 2,
+      "player": null,
+      "second": 37,
+      "team": null
+    },
+    {
+      "description": "Period 3 starts",
+      "kind": "period_start",
+      "minute": 90,
+      "period": 3,
+      "player": null,
+      "second": 0,
+      "team": null
+    },
+    {
+      "description": "Period 3 ends",
+      "kind": "period_end",
+      "minute": 106,
+      "period": 3,
+      "player": null,
+      "second": 4,
+      "team": null
+    },
+    {
+      "description": "Period 4 starts",
+      "kind": "period_start",
+      "minute": 105,
+      "period": 4,
+      "player": null,
+      "second": 0,
+      "team": null
+    },
+    {
+      "description": "Goal: Lionel Andrés Messi Cuccittini (Argentina)",
+      "kind": "goal",
+      "minute": 107,
+      "period": 4,
+      "player": "Lionel Andrés Messi Cuccittini",
+      "second": 58,
+      "team": "Argentina"
+    },
+    {
+      "description": "Goal from the penalty spot: Kylian Mbappé Lottin (France)",
+      "kind": "goal",
+      "minute": 117,
+      "period": 4,
+      "player": "Kylian Mbappé Lottin",
+      "second": 5,
+      "team": "France"
+    },
+    {
+      "description": "Period 4 ends",
+      "kind": "period_end",
+      "minute": 124,
+      "period": 4,
+      "player": null,
+      "second": 7,
+      "team": null
+    },
+    {
+      "description": "Period 5 starts",
+      "kind": "period_start",
+      "minute": 120,
+      "period": 5,
+      "player": null,
+      "second": 0,
+      "team": null
+    },
+    {
+      "description": "Shootout kick scored: Kylian Mbappé Lottin (France)",
+      "kind": "shootout_goal",
+      "minute": 120,
+      "period": 5,
+      "player": "Kylian Mbappé Lottin",
+      "second": 13,
+      "team": "France"
+    },
+    {
+      "description": "Shootout kick scored: Lionel Andrés Messi Cuccittini (Argentina)",
+      "kind": "shootout_goal",
+      "minute": 121,
+      "period": 5,
+      "player": "Lionel Andrés Messi Cuccittini",
+      "second": 2,
+      "team": "Argentina"
+    },
+    {
+      "description": "Shootout kick missed (Saved): Kingsley Coman (France)",
+      "kind": "shootout_miss",
+      "minute": 121,
+      "period": 5,
+      "player": "Kingsley Coman",
+      "second": 42,
+      "team": "France"
+    },
+    {
+      "description": "Shootout kick scored: Paulo Bruno Exequiel Dybala (Argentina)",
+      "kind": "shootout_goal",
+      "minute": 122,
+      "period": 5,
+      "player": "Paulo Bruno Exequiel Dybala",
+      "second": 27,
+      "team": "Argentina"
+    },
+    {
+      "description": "Shootout kick missed (Off T): Aurélien Djani Tchouaméni (France)",
+      "kind": "shootout_miss",
+      "minute": 123,
+      "period": 5,
+      "player": "Aurélien Djani Tchouaméni",
+      "second": 29,
+      "team": "France"
+    },
+    {
+      "description": "Shootout kick scored: Leandro Daniel Paredes (Argentina)",
+      "kind": "shootout_goal",
+      "minute": 124,
+      "period": 5,
+      "player": "Leandro Daniel Paredes",
+      "second": 16,
+      "team": "Argentina"
+    },
+    {
+      "description": "Shootout kick scored: Randal Kolo Muani (France)",
+      "kind": "shootout_goal",
+      "minute": 125,
+      "period": 5,
+      "player": "Randal Kolo Muani",
+      "second": 9,
+      "team": "France"
+    },
+    {
+      "description": "Shootout kick scored: Gonzalo Ariel Montiel (Argentina)",
+      "kind": "shootout_goal",
+      "minute": 125,
+      "period": 5,
+      "player": "Gonzalo Ariel Montiel",
+      "second": 57,
+      "team": "Argentina"
+    },
+    {
+      "description": "Period 5 ends",
+      "kind": "period_end",
+      "minute": 125,
+      "period": 5,
+      "player": null,
+      "second": 58,
+      "team": null
+    }
+  ],
+  "match": {
+    "away_score": 3,
+    "away_team": "France",
+    "competition": "FIFA World Cup",
+    "home_score": 3,
+    "home_team": "Argentina",
+    "id": 3869685,
+    "match_date": "2022-12-18",
+    "season": "2022"
+  },
+  "source": {
+    "commit": "4b73468fc5b0f1950f9f66fada70ad3a4f9327cb",
+    "events_sha256": "a0b0036d50c10a4c8879d1ee9f24a7502ec2cfb264a61951c8d500dfc897ec35",
+    "note": "Key moments only. StatsBomb provides match events, not platform traffic.",
+    "provider": "StatsBomb Open Data"
+  }
+}

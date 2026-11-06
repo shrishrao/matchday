@@ -30,7 +30,8 @@ def get_match(connection: psycopg.Connection, match_id: int) -> dict | None:
     """Return one match, or None if it does not exist."""
     return connection.execute(
         """
-        SELECT id, home_team, away_team, competition, kickoff_at, data_source
+        SELECT id, home_team, away_team, competition, season, match_date,
+               home_score, away_score, data_source
         FROM matches
         WHERE id = %(match_id)s
         """,
@@ -39,19 +40,19 @@ def get_match(connection: psycopg.Connection, match_id: int) -> dict | None:
 
 
 def get_feed(
-    connection: psycopg.Connection, match_id: int, after_minute: int | None, limit: int
+    connection: psycopg.Connection, match_id: int, after_seconds: int | None, limit: int
 ) -> list[dict]:
-    """Return a match's events in time order, optionally only those after a minute."""
+    """Return a match's events in true time order, optionally only those after a clock time."""
     return connection.execute(
         """
-        SELECT id, minute, second, event_type, team, description
+        SELECT id, period, minute, second, clock_seconds, event_type, team, description
         FROM match_events
         WHERE match_id = %(match_id)s
-          AND (%(after_minute)s::integer IS NULL OR minute > %(after_minute)s::integer)
-        ORDER BY minute, second, id
+          AND (%(after_seconds)s::integer IS NULL OR clock_seconds > %(after_seconds)s::integer)
+        ORDER BY clock_seconds, period, id
         LIMIT %(limit)s
         """,
-        {"match_id": match_id, "after_minute": after_minute, "limit": limit},
+        {"match_id": match_id, "after_seconds": after_seconds, "limit": limit},
     ).fetchall()
 
 

@@ -1,19 +1,19 @@
-"""Load repeatable placeholder data. Run with: python -m scripts.seed
+"""Load the real match and generated reactions. Run with: python -m scripts.seed
 
-Everything here is made up. Stage 3 replaces the match and events with real StatsBomb data.
-Fan reactions stay generated, because StatsBomb provides match events, not platform traffic.
+The match and its events are real, from StatsBomb. Fan reactions are generated, because
+StatsBomb provides match events, not platform traffic. Seeding erases existing data.
 """
 
 import argparse
 import random
 import sys
 from collections.abc import Iterator
-from datetime import datetime, timezone
 from pathlib import Path
 
 import psycopg
 
 from app.config import PROJECT_ROOT, Settings
+from app.timeline import load_sample, played_clock
 
 SCHEMA_PATH = Path(PROJECT_ROOT) / "app" / "schema.sql"
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"}
@@ -21,31 +21,18 @@ LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"}
 DEFAULT_REACTIONS = 1_000_000
 RANDOM_SEED = 2022
 FAN_COUNT = 50_000
-LAST_MINUTE = 95
 SPIKE_WEIGHT = 25
 
-# ===== Placeholder match =====
-MATCH_ID = 1
-HOME_TEAM = "Placeholder United"
-AWAY_TEAM = "Sample City"
-MATCH = (
-    MATCH_ID,
-    HOME_TEAM,
-    AWAY_TEAM,
-    "Placeholder Cup",
-    datetime(2000, 1, 1, 15, 0, tzinfo=timezone.utc),
-    "placeholder",
+# ===== Real match data =====
+SAMPLE = load_sample()
+MATCH_ID = SAMPLE.match.id
+CLOCK = played_clock(SAMPLE)
+LAST_MINUTE = CLOCK[-1][1] // 60
+SPIKE_MINUTES = frozenset(
+    played // 60
+    for event, played in CLOCK
+    if event.kind in ("goal", "shootout_goal", "shootout_miss")
 )
-EVENTS = (
-    (0, 0, "kick_off", None, "Placeholder event: kick-off"),
-    (23, 10, "goal", HOME_TEAM, "Placeholder event: home goal"),
-    (45, 30, "half_time", None, "Placeholder event: half-time"),
-    (46, 0, "second_half", None, "Placeholder event: second half begins"),
-    (67, 45, "goal", AWAY_TEAM, "Placeholder event: away goal"),
-    (88, 5, "goal", HOME_TEAM, "Placeholder event: home goal"),
-    (93, 0, "full_time", None, "Placeholder event: full-time"),
-)
-SPIKE_MINUTES = frozenset(event[0] for event in EVENTS if event[2] == "goal")
 
 
 # ===== Data generation =====
@@ -70,30 +57,55 @@ def require_local_host(settings: Settings) -> None:
 
 
 def apply_schema(connection: psycopg.Connection) -> None:
-    """Create any tables and indexes that do not exist yet."""
+    """Replace the tables, so that schema changes always take effect."""
+    connection.execute("DROP TABLE IF EXISTS fan_reactions, match_events, matches")
     connection.execute(SCHEMA_PATH.read_text(encoding="utf-8"))
 
 
 def seed_database(
     connection: psycopg.Connection, reactions: int = DEFAULT_REACTIONS, seed: int = RANDOM_SEED
 ) -> None:
-    """Replace all data with the placeholder match, events and generated reactions."""
+    """Replace all data with the real match, its key events, and generated reactions."""
     apply_schema(connection)
-    connection.execute("TRUNCATE matches, match_events, fan_reactions RESTART IDENTITY")
+    match = SAMPLE.match
     connection.execute(
         """
-        INSERT INTO matches (id, home_team, away_team, competition, kickoff_at, data_source)
-        VALUES (%s, %s, %s, %s, %s, %s)
+        INSERT INTO matches
+            (id, home_team, away_team, competition, season, match_date,
+             home_score, away_score, data_source)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'statsbomb')
         """,
-        MATCH,
+        (
+            match.id,
+            match.home_team,
+            match.away_team,
+            match.competition,
+            match.season,
+            match.match_date,
+            match.home_score,
+            match.away_score,
+        ),
     )
     with connection.cursor() as cursor:
         cursor.executemany(
             """
-            INSERT INTO match_events (match_id, minute, second, event_type, team, description)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO match_events
+                (match_id, period, minute, second, clock_seconds, event_type, team, description)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """,
-            [(MATCH_ID, *event) for event in EVENTS],
+            [
+                (
+                    match.id,
+                    event.period,
+                    event.minute,
+                    event.second,
+                    played,
+                    event.kind,
+                    event.team,
+                    event.description,
+                )
+                for event, played in CLOCK
+            ],
         )
         with cursor.copy(
             "COPY fan_reactions (match_id, minute, fan_id, reaction_type) FROM STDIN"
@@ -106,7 +118,7 @@ def seed_database(
 # ===== Command line =====
 def main() -> int:
     """Seed the database named in .env and report the row counts."""
-    parser = argparse.ArgumentParser(description="Load repeatable placeholder data.")
+    parser = argparse.ArgumentParser(description="Load the real match and generated reactions.")
     parser.add_argument("--reactions", type=int, default=DEFAULT_REACTIONS)
     arguments = parser.parse_args()
     if arguments.reactions < 1:

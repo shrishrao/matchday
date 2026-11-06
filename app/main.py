@@ -15,7 +15,7 @@ from app.schemas import FeedOut, HealthOut, MatchOut, MatchStatsOut
 
 # ===== Input limits =====
 MAX_BIGINT = 2**63 - 1
-MAX_MINUTE = 150
+MAX_CLOCK_SECONDS = 14_400
 MAX_FEED_LIMIT = 100
 
 Connection = Annotated[psycopg.Connection, Depends(get_connection)]
@@ -46,7 +46,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(
         title="Matchday API",
-        description="Traffic is simulated. Fan reactions are generated, not real platform data.",
+        description=(
+            "Traffic is simulated and fan reactions are generated. "
+            "Match events: StatsBomb, which provides match events, not platform traffic."
+        ),
         lifespan=lifespan,
     )
 
@@ -76,12 +79,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def read_feed(
         match_id: MatchId,
         connection: Connection,
-        after_minute: Annotated[int | None, Query(ge=0, le=MAX_MINUTE)] = None,
+        after_seconds: Annotated[int | None, Query(ge=0, le=MAX_CLOCK_SECONDS)] = None,
         limit: Annotated[int, Query(ge=1, le=MAX_FEED_LIMIT)] = 50,
     ) -> dict:
         """Return a match's events in time order. This is the fast, indexed path."""
         require_match(connection, match_id)
-        events = queries.get_feed(connection, match_id, after_minute, limit)
+        events = queries.get_feed(connection, match_id, after_seconds, limit)
         return {"match_id": match_id, "events": events}
 
     @app.get("/matches/{match_id}/stats", response_model=MatchStatsOut)

@@ -1,0 +1,1085 @@
+{
+  "disclaimer": "Traffic is simulated. StatsBomb provides the match events, not platform traffic. Spike sizes and break lengths are assumptions.",
+  "match_id": 3869685,
+  "match_seconds_per_replay_second": 64.444,
+  "moments": [
+    {
+      "description": "Goal from the penalty spot: Lionel Andrés Messi Cuccittini (Argentina)",
+      "period": 1,
+      "played_seconds": 1344,
+      "replay_second": 20.855,
+      "spike": "goal"
+    },
+    {
+      "description": "Goal: Ángel Fabián Di María Hernández (Argentina)",
+      "period": 1,
+      "played_seconds": 2122,
+      "replay_second": 32.928,
+      "spike": "goal"
+    },
+    {
+      "description": "Period 1 ends",
+      "period": 1,
+      "played_seconds": 3154,
+      "replay_second": 48.941,
+      "spike": "match_break"
+    },
+    {
+      "description": "Goal from the penalty spot: Kylian Mbappé Lottin (France)",
+      "period": 2,
+      "played_seconds": 5218,
+      "replay_second": 94.934,
+      "spike": "goal"
+    },
+    {
+      "description": "Goal: Kylian Mbappé Lottin (France)",
+      "period": 2,
+      "played_seconds": 5313,
+      "replay_second": 96.409,
+      "spike": "goal"
+    },
+    {
+      "description": "Period 2 ends",
+      "period": 2,
+      "played_seconds": 6371,
+      "replay_second": 112.826,
+      "spike": "match_break"
+    },
+    {
+      "description": "Period 3 ends",
+      "period": 3,
+      "played_seconds": 7335,
+      "replay_second": 132.44,
+      "spike": "match_break"
+    },
+    {
+      "description": "Goal: Lionel Andrés Messi Cuccittini (Argentina)",
+      "period": 4,
+      "played_seconds": 7513,
+      "replay_second": 136.133,
+      "spike": "goal"
+    },
+    {
+      "description": "Goal from the penalty spot: Kylian Mbappé Lottin (France)",
+      "period": 4,
+      "played_seconds": 8060,
+      "replay_second": 144.621,
+      "spike": "goal"
+    },
+    {
+      "description": "Period 4 ends",
+      "period": 4,
+      "played_seconds": 8482,
+      "replay_second": 151.169,
+      "spike": "match_break"
+    },
+    {
+      "description": "Shootout kick scored: Kylian Mbappé Lottin (France)",
+      "period": 5,
+      "played_seconds": 8495,
+      "replay_second": 156.026,
+      "spike": "shootout_kick"
+    },
+    {
+      "description": "Shootout kick scored: Lionel Andrés Messi Cuccittini (Argentina)",
+      "period": 5,
+      "played_seconds": 8544,
+      "replay_second": 156.786,
+      "spike": "shootout_kick"
+    },
+    {
+      "description": "Shootout kick missed (Saved): Kingsley Coman (France)",
+      "period": 5,
+      "played_seconds": 8584,
+      "replay_second": 157.407,
+      "spike": "shootout_kick"
+    },
+    {
+      "description": "Shootout kick scored: Paulo Bruno Exequiel Dybala (Argentina)",
+      "period": 5,
+      "played_seconds": 8629,
+      "replay_second": 158.105,
+      "spike": "shootout_kick"
+    },
+    {
+      "description": "Shootout kick missed (Off T): Aurélien Djani Tchouaméni (France)",
+      "period": 5,
+      "played_seconds": 8691,
+      "replay_second": 159.067,
+      "spike": "shootout_kick"
+    },
+    {
+      "description": "Shootout kick scored: Leandro Daniel Paredes (Argentina)",
+      "period": 5,
+      "played_seconds": 8738,
+      "replay_second": 159.797,
+      "spike": "shootout_kick"
+    },
+    {
+      "description": "Shootout kick scored: Randal Kolo Muani (France)",
+      "period": 5,
+      "played_seconds": 8791,
+      "replay_second": 160.619,
+      "spike": "shootout_kick"
+    },
+    {
+      "description": "Shootout kick scored: Gonzalo Ariel Montiel (Argentina)",
+      "period": 5,
+      "played_seconds": 8839,
+      "replay_second": 161.364,
+      "spike": "final_kick"
+    },
+    {
+      "description": "Period 5 ends",
+      "period": 5,
+      "played_seconds": 8840,
+      "replay_second": 161.379,
+      "spike": "full_time"
+    }
+  ],
+  "phases": [
+    {
+      "name": "first_half",
+      "start_second": 0.0
+    },
+    {
+      "name": "break_after_first_half",
+      "start_second": 48.941
+    },
+    {
+      "name": "second_half",
+      "start_second": 62.907
+    },
+    {
+      "name": "break_after_second_half",
+      "start_second": 112.826
+    },
+    {
+      "name": "extra_time_first_half",
+      "start_second": 117.481
+    },
+    {
+      "name": "break_after_extra_time_first_half",
+      "start_second": 132.44
+    },
+    {
+      "name": "extra_time_second_half",
+      "start_second": 133.371
+    },
+    {
+      "name": "break_after_extra_time_second_half",
+      "start_second": 151.169
+    },
+    {
+      "name": "penalty_shootout",
+      "start_second": 155.824
+    },
+    {
+      "name": "post_match",
+      "start_second": 161.379
+    }
+  ],
+  "points": [
+    {
+      "multiplier": 1.0,
+      "phase": "first_half",
+      "second": 0
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "first_half",
+      "second": 1
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "first_half",
+      "second": 2
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "first_half",
+      "second": 3
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "first_half",
+      "second": 4
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "first_half",
+      "second": 5
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "first_half",
+      "second": 6
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "first_half",
+      "second": 7
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "first_half",
+      "second": 8
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "first_half",
+      "second": 9
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "first_half",
+      "second": 10
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "first_half",
+      "second": 11
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "first_half",
+      "second": 12
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "first_half",
+      "second": 13
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "first_half",
+      "second": 14
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "first_half",
+      "second": 15
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "first_half",
+      "second": 16
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "first_half",
+      "second": 17
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "first_half",
+      "second": 18
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "first_half",
+      "second": 19
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "first_half",
+      "second": 20
+    },
+    {
+      "multiplier": 5.94,
+      "phase": "first_half",
+      "second": 21
+    },
+    {
+      "multiplier": 5.523,
+      "phase": "first_half",
+      "second": 22
+    },
+    {
+      "multiplier": 5.106,
+      "phase": "first_half",
+      "second": 23
+    },
+    {
+      "multiplier": 4.69,
+      "phase": "first_half",
+      "second": 24
+    },
+    {
+      "multiplier": 4.273,
+      "phase": "first_half",
+      "second": 25
+    },
+    {
+      "multiplier": 3.856,
+      "phase": "first_half",
+      "second": 26
+    },
+    {
+      "multiplier": 3.44,
+      "phase": "first_half",
+      "second": 27
+    },
+    {
+      "multiplier": 3.023,
+      "phase": "first_half",
+      "second": 28
+    },
+    {
+      "multiplier": 2.606,
+      "phase": "first_half",
+      "second": 29
+    },
+    {
+      "multiplier": 2.19,
+      "phase": "first_half",
+      "second": 30
+    },
+    {
+      "multiplier": 1.773,
+      "phase": "first_half",
+      "second": 31
+    },
+    {
+      "multiplier": 1.356,
+      "phase": "first_half",
+      "second": 32
+    },
+    {
+      "multiplier": 5.97,
+      "phase": "first_half",
+      "second": 33
+    },
+    {
+      "multiplier": 5.553,
+      "phase": "first_half",
+      "second": 34
+    },
+    {
+      "multiplier": 5.137,
+      "phase": "first_half",
+      "second": 35
+    },
+    {
+      "multiplier": 4.72,
+      "phase": "first_half",
+      "second": 36
+    },
+    {
+      "multiplier": 4.303,
+      "phase": "first_half",
+      "second": 37
+    },
+    {
+      "multiplier": 3.887,
+      "phase": "first_half",
+      "second": 38
+    },
+    {
+      "multiplier": 3.47,
+      "phase": "first_half",
+      "second": 39
+    },
+    {
+      "multiplier": 3.053,
+      "phase": "first_half",
+      "second": 40
+    },
+    {
+      "multiplier": 2.637,
+      "phase": "first_half",
+      "second": 41
+    },
+    {
+      "multiplier": 2.22,
+      "phase": "first_half",
+      "second": 42
+    },
+    {
+      "multiplier": 1.803,
+      "phase": "first_half",
+      "second": 43
+    },
+    {
+      "multiplier": 1.387,
+      "phase": "first_half",
+      "second": 44
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "first_half",
+      "second": 45
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "first_half",
+      "second": 46
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "first_half",
+      "second": 47
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "first_half",
+      "second": 48
+    },
+    {
+      "multiplier": 2.992,
+      "phase": "break_after_first_half",
+      "second": 49
+    },
+    {
+      "multiplier": 2.859,
+      "phase": "break_after_first_half",
+      "second": 50
+    },
+    {
+      "multiplier": 2.725,
+      "phase": "break_after_first_half",
+      "second": 51
+    },
+    {
+      "multiplier": 2.592,
+      "phase": "break_after_first_half",
+      "second": 52
+    },
+    {
+      "multiplier": 2.459,
+      "phase": "break_after_first_half",
+      "second": 53
+    },
+    {
+      "multiplier": 2.325,
+      "phase": "break_after_first_half",
+      "second": 54
+    },
+    {
+      "multiplier": 2.192,
+      "phase": "break_after_first_half",
+      "second": 55
+    },
+    {
+      "multiplier": 2.059,
+      "phase": "break_after_first_half",
+      "second": 56
+    },
+    {
+      "multiplier": 1.925,
+      "phase": "break_after_first_half",
+      "second": 57
+    },
+    {
+      "multiplier": 1.792,
+      "phase": "break_after_first_half",
+      "second": 58
+    },
+    {
+      "multiplier": 1.659,
+      "phase": "break_after_first_half",
+      "second": 59
+    },
+    {
+      "multiplier": 1.525,
+      "phase": "break_after_first_half",
+      "second": 60
+    },
+    {
+      "multiplier": 1.392,
+      "phase": "break_after_first_half",
+      "second": 61
+    },
+    {
+      "multiplier": 1.259,
+      "phase": "break_after_first_half",
+      "second": 62
+    },
+    {
+      "multiplier": 1.125,
+      "phase": "second_half",
+      "second": 63
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 64
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 65
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 66
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 67
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 68
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 69
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 70
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 71
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 72
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 73
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 74
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 75
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 76
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 77
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 78
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 79
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 80
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 81
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 82
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 83
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 84
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 85
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 86
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 87
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 88
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 89
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 90
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 91
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 92
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 93
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 94
+    },
+    {
+      "multiplier": 5.972,
+      "phase": "second_half",
+      "second": 95
+    },
+    {
+      "multiplier": 5.556,
+      "phase": "second_half",
+      "second": 96
+    },
+    {
+      "multiplier": 8.0,
+      "phase": "second_half",
+      "second": 97
+    },
+    {
+      "multiplier": 8.0,
+      "phase": "second_half",
+      "second": 98
+    },
+    {
+      "multiplier": 8.0,
+      "phase": "second_half",
+      "second": 99
+    },
+    {
+      "multiplier": 7.393,
+      "phase": "second_half",
+      "second": 100
+    },
+    {
+      "multiplier": 6.56,
+      "phase": "second_half",
+      "second": 101
+    },
+    {
+      "multiplier": 5.726,
+      "phase": "second_half",
+      "second": 102
+    },
+    {
+      "multiplier": 4.893,
+      "phase": "second_half",
+      "second": 103
+    },
+    {
+      "multiplier": 4.06,
+      "phase": "second_half",
+      "second": 104
+    },
+    {
+      "multiplier": 3.226,
+      "phase": "second_half",
+      "second": 105
+    },
+    {
+      "multiplier": 2.393,
+      "phase": "second_half",
+      "second": 106
+    },
+    {
+      "multiplier": 1.587,
+      "phase": "second_half",
+      "second": 107
+    },
+    {
+      "multiplier": 1.17,
+      "phase": "second_half",
+      "second": 108
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 109
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 110
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 111
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "second_half",
+      "second": 112
+    },
+    {
+      "multiplier": 2.977,
+      "phase": "break_after_second_half",
+      "second": 113
+    },
+    {
+      "multiplier": 2.843,
+      "phase": "break_after_second_half",
+      "second": 114
+    },
+    {
+      "multiplier": 2.71,
+      "phase": "break_after_second_half",
+      "second": 115
+    },
+    {
+      "multiplier": 2.577,
+      "phase": "break_after_second_half",
+      "second": 116
+    },
+    {
+      "multiplier": 2.443,
+      "phase": "break_after_second_half",
+      "second": 117
+    },
+    {
+      "multiplier": 2.31,
+      "phase": "extra_time_first_half",
+      "second": 118
+    },
+    {
+      "multiplier": 2.177,
+      "phase": "extra_time_first_half",
+      "second": 119
+    },
+    {
+      "multiplier": 2.043,
+      "phase": "extra_time_first_half",
+      "second": 120
+    },
+    {
+      "multiplier": 1.91,
+      "phase": "extra_time_first_half",
+      "second": 121
+    },
+    {
+      "multiplier": 1.777,
+      "phase": "extra_time_first_half",
+      "second": 122
+    },
+    {
+      "multiplier": 1.643,
+      "phase": "extra_time_first_half",
+      "second": 123
+    },
+    {
+      "multiplier": 1.51,
+      "phase": "extra_time_first_half",
+      "second": 124
+    },
+    {
+      "multiplier": 1.377,
+      "phase": "extra_time_first_half",
+      "second": 125
+    },
+    {
+      "multiplier": 1.243,
+      "phase": "extra_time_first_half",
+      "second": 126
+    },
+    {
+      "multiplier": 1.11,
+      "phase": "extra_time_first_half",
+      "second": 127
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "extra_time_first_half",
+      "second": 128
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "extra_time_first_half",
+      "second": 129
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "extra_time_first_half",
+      "second": 130
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "extra_time_first_half",
+      "second": 131
+    },
+    {
+      "multiplier": 1.0,
+      "phase": "extra_time_first_half",
+      "second": 132
+    },
+    {
+      "multiplier": 2.925,
+      "phase": "break_after_extra_time_first_half",
+      "second": 133
+    },
+    {
+      "multiplier": 2.792,
+      "phase": "extra_time_second_half",
+      "second": 134
+    },
+    {
+      "multiplier": 2.659,
+      "phase": "extra_time_second_half",
+      "second": 135
+    },
+    {
+      "multiplier": 2.525,
+      "phase": "extra_time_second_half",
+      "second": 136
+    },
+    {
+      "multiplier": 7.031,
+      "phase": "extra_time_second_half",
+      "second": 137
+    },
+    {
+      "multiplier": 6.481,
+      "phase": "extra_time_second_half",
+      "second": 138
+    },
+    {
+      "multiplier": 5.931,
+      "phase": "extra_time_second_half",
+      "second": 139
+    },
+    {
+      "multiplier": 5.381,
+      "phase": "extra_time_second_half",
+      "second": 140
+    },
+    {
+      "multiplier": 4.831,
+      "phase": "extra_time_second_half",
+      "second": 141
+    },
+    {
+      "multiplier": 4.281,
+      "phase": "extra_time_second_half",
+      "second": 142
+    },
+    {
+      "multiplier": 3.731,
+      "phase": "extra_time_second_half",
+      "second": 143
+    },
+    {
+      "multiplier": 3.181,
+      "phase": "extra_time_second_half",
+      "second": 144
+    },
+    {
+      "multiplier": 7.473,
+      "phase": "extra_time_second_half",
+      "second": 145
+    },
+    {
+      "multiplier": 6.506,
+      "phase": "extra_time_second_half",
+      "second": 146
+    },
+    {
+      "multiplier": 5.54,
+      "phase": "extra_time_second_half",
+      "second": 147
+    },
+    {
+      "multiplier": 4.648,
+      "phase": "extra_time_second_half",
+      "second": 148
+    },
+    {
+      "multiplier": 4.175,
+      "phase": "extra_time_second_half",
+      "second": 149
+    },
+    {
+      "multiplier": 3.759,
+      "phase": "extra_time_second_half",
+      "second": 150
+    },
+    {
+      "multiplier": 3.342,
+      "phase": "extra_time_second_half",
+      "second": 151
+    },
+    {
+      "multiplier": 4.815,
+      "phase": "break_after_extra_time_second_half",
+      "second": 152
+    },
+    {
+      "multiplier": 4.265,
+      "phase": "break_after_extra_time_second_half",
+      "second": 153
+    },
+    {
+      "multiplier": 3.715,
+      "phase": "break_after_extra_time_second_half",
+      "second": 154
+    },
+    {
+      "multiplier": 3.165,
+      "phase": "break_after_extra_time_second_half",
+      "second": 155
+    },
+    {
+      "multiplier": 2.615,
+      "phase": "penalty_shootout",
+      "second": 156
+    },
+    {
+      "multiplier": 4.777,
+      "phase": "penalty_shootout",
+      "second": 157
+    },
+    {
+      "multiplier": 5.171,
+      "phase": "penalty_shootout",
+      "second": 158
+    },
+    {
+      "multiplier": 5.077,
+      "phase": "penalty_shootout",
+      "second": 159
+    },
+    {
+      "multiplier": 6.018,
+      "phase": "penalty_shootout",
+      "second": 160
+    },
+    {
+      "multiplier": 5.437,
+      "phase": "penalty_shootout",
+      "second": 161
+    },
+    {
+      "multiplier": 8.0,
+      "phase": "post_match",
+      "second": 162
+    },
+    {
+      "multiplier": 8.0,
+      "phase": "post_match",
+      "second": 163
+    },
+    {
+      "multiplier": 8.0,
+      "phase": "post_match",
+      "second": 164
+    },
+    {
+      "multiplier": 8.0,
+      "phase": "post_match",
+      "second": 165
+    },
+    {
+      "multiplier": 8.0,
+      "phase": "post_match",
+      "second": 166
+    },
+    {
+      "multiplier": 7.308,
+      "phase": "post_match",
+      "second": 167
+    },
+    {
+      "multiplier": 6.475,
+      "phase": "post_match",
+      "second": 168
+    },
+    {
+      "multiplier": 5.642,
+      "phase": "post_match",
+      "second": 169
+    },
+    {
+      "multiplier": 4.808,
+      "phase": "post_match",
+      "second": 170
+    },
+    {
+      "multiplier": 3.975,
+      "phase": "post_match",
+      "second": 171
+    },
+    {
+      "multiplier": 3.46,
+      "phase": "post_match",
+      "second": 172
+    },
+    {
+      "multiplier": 3.126,
+      "phase": "post_match",
+      "second": 173
+    },
+    {
+      "multiplier": 2.793,
+      "phase": "post_match",
+      "second": 174
+    },
+    {
+      "multiplier": 2.46,
+      "phase": "post_match",
+      "second": 175
+    },
+    {
+      "multiplier": 2.126,
+      "phase": "post_match",
+      "second": 176
+    },
+    {
+      "multiplier": 1.793,
+      "phase": "post_match",
+      "second": 177
+    },
+    {
+      "multiplier": 1.46,
+      "phase": "post_match",
+      "second": 178
+    },
+    {
+      "multiplier": 1.126,
+      "phase": "post_match",
+      "second": 179
+    }
+  ],
+  "replay_seconds": 180
+}
