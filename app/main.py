@@ -1,0 +1,96 @@
+"""The Matchday API: a small match feed with one deliberately slow endpoint."""
+
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from typing import Annotated
+
+import psycopg
+from fastapi import Depends, FastAPI, HTTPException, Path, Query, Request
+from fastapi.responses import JSONResponse
+
+from app import queries
+from app.config import Settings
+from app.db import create_pool, get_connection
+from app.schemas import FeedOut, HealthOut, MatchOut, MatchStatsOut
+
+# ===== Input limits =====
+MAX_BIGINT = 2**63 - 1
+MAX_MINUTE = 150
+MAX_FEED_LIMIT = 100
+
+Connection = Annotated[psycopg.Connection, Depends(get_connection)]
+MatchId = Annotated[int, Path(ge=1, le=MAX_BIGINT)]
+
+
+# ===== Helpers =====
+def require_match(connection: psycopg.Connection, match_id: int) -> dict:
+    """Return the match, or stop the request with a 404."""
+    match = queries.get_match(connection, match_id)
+    if match is None:
+        raise HTTPException(status_code=404, detail="Match not found")
+    return match
+
+
+# ===== App factory =====
+def create_app(settings: Settings | None = None) -> FastAPI:
+    """Build the API, using the given settings or those from the environment."""
+    active_settings = settings or Settings()
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        """Open the connection pool at startup and close it at shutdown."""
+        app.state.pool = create_pool(active_settings)
+        app.state.pool.open()
+        yield
+        app.state.pool.close()
+
+    app = FastAPI(
+        title="Matchday API",
+        description="Traffic is simulated. Fan reactions are generated, not real platform data.",
+        lifespan=lifespan,
+    )
+
+    # ===== Error handling =====
+    @app.exception_handler(psycopg.OperationalError)
+    def database_unavailable(_: Request, __: psycopg.OperationalError) -> JSONResponse:
+        """Answer 503 when the database or pool is unavailable, hiding internal details."""
+        return JSONResponse(
+            status_code=503,
+            content={"detail": "Database unavailable"},
+            headers={"Retry-After": "5"},
+        )
+
+    # ===== Routes =====
+    @app.get("/health", response_model=HealthOut)
+    def health(connection: Connection) -> dict:
+        """Report that the app is running and the database answers."""
+        queries.ping(connection)
+        return {"status": "ok"}
+
+    @app.get("/matches/{match_id}", response_model=MatchOut)
+    def read_match(match_id: MatchId, connection: Connection) -> dict:
+        """Return one match."""
+        return require_match(connection, match_id)
+
+    @app.get("/matches/{match_id}/feed", response_model=FeedOut)
+    def read_feed(
+        match_id: MatchId,
+        connection: Connection,
+        after_minute: Annotated[int | None, Query(ge=0, le=MAX_MINUTE)] = None,
+        limit: Annotated[int, Query(ge=1, le=MAX_FEED_LIMIT)] = 50,
+    ) -> dict:
+        """Return a match's events in time order. This is the fast, indexed path."""
+        require_match(connection, match_id)
+        events = queries.get_feed(connection, match_id, after_minute, limit)
+        return {"match_id": match_id, "events": events}
+
+    @app.get("/matches/{match_id}/stats", response_model=MatchStatsOut)
+    def read_stats(match_id: MatchId, connection: Connection) -> dict:
+        """Return per-minute reaction totals. This is the deliberately slow path."""
+        require_match(connection, match_id)
+        return {"match_id": match_id, "minutes": queries.get_match_stats(connection, match_id)}
+
+    return app
+
+
+app = create_app()

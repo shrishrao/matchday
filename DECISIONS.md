@@ -47,3 +47,29 @@ Each entry: decision, alternatives considered, and tradeoffs.
 - **Alternative:** skip them automatically.
 - **Why:** a skipped test can look like a pass and hide a broken setup.
 - **Tradeoff:** services must be running for a full test pass.
+
+## D11: Plain SQL through psycopg, no ORM (Stage 2)
+- **Alternative:** SQLAlchemy.
+- **Why:** every query stays visible, which helps with `EXPLAIN` and query counting in Stage 5.
+- **Tradeoff:** more hand-written SQL, and result rows are not mapped to objects.
+
+## D12: Regular `def` routes, not `async` (Stage 2)
+- **Alternative:** `async def` with psycopg's async pool.
+- **Why:** psycopg's async mode does not work with Windows' default event loop. FastAPI runs `def` routes in a thread pool, which is simpler to explain.
+- **Tradeoff:** concurrency is limited by threads and pool size, which is a realistic failure point for Stage 6.
+
+## D13: The slow query stays slow on purpose (Stage 2)
+- **Decision:** `/stats` reads all 1,000,000 generated reactions and sorts them for `count(DISTINCT fan_id)`.
+- **Alternative:** add an index or a pre-computed summary table.
+- **Why:** this is the load the protections are measured against. An index on `match_id` would not help much with one match, because every row matches. A test keeps the table free of extra indexes.
+- **Tradeoff:** the reactions are generated, and the README must say so.
+
+## D14: Test each pooled connection before lending it (Stage 2)
+- **Decision:** set `check=ConnectionPool.check_connection`.
+- **Alternative:** the default, no check.
+- **Why:** without it, the live API kept returning 503 after Postgres had restarted, because requests got dead connections.
+- **Tradeoff:** one extra network round trip per request. It applies to every benchmark run equally, so comparisons stay fair.
+
+## D15: Separate test database, and `httpx2` for the test client (Stage 2)
+- **Why a separate database:** tests can reseed `matchday_test` without touching real seed data. Seeding also refuses non-local hosts because it erases data.
+- **Why `httpx2`:** it replaces the planned `httpx`, because Starlette's test client deprecates `httpx` and asks for `httpx2`. It is only used in tests.

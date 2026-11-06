@@ -1,50 +1,54 @@
 # Handoff
 
 ## Current stage and status
-**Stage 1: Local services.** Complete and committed. Stage 2 is planned, and its build is waiting for approval.
+**Stage 2: Backend baseline.** Complete and committed. Stage 3 has not started and needs approval.
 
 ## Finished and verified
-**Stage 0**
-- Repo at `C:\dev\matchday`, branch `main`, git identity configured.
-- Python 3.13.7 venv at `.venv`. WSL2 working.
-- Docker Desktop 4.98.0 (Docker 29.9.2, Compose v5.6.1), official installer with verified signature.
+**Stages 0 and 1**
+- Repo at `C:\dev\matchday`, branch `main`. Python 3.13.7 venv at `.venv`. Docker Desktop 4.98.0.
+- Postgres 18.6 and Redis 8.10.3 run through Compose, healthy, bound to `127.0.0.1`.
 - Machine: 16 logical CPUs, ~24 GB RAM.
 
-**Stage 1**
-- Postgres 18.6 and Redis 8.10.3 start through Compose and report `healthy`.
-- Ports are bound to `127.0.0.1` only.
-- `scripts/check_services.py` runs a real query on Postgres and a write/read/delete on Redis. It exits 0 when both pass.
-- With Redis really stopped, the script reports FAIL and exits 1. After `down` and `up`, both are healthy again.
-- `.env` holds random local passwords and is git-ignored. No untracked file git would add contains the real passwords.
+**Stage 2**
+- FastAPI app with `/health`, `/matches/{id}`, `/matches/{id}/feed` and `/matches/{id}/stats`. Live server tested on `127.0.0.1:8000`.
+- Seed data: 1 placeholder match (labelled `data_source: placeholder`), 7 placeholder events, 1,000,000 generated fan reactions.
+- Two seed loads of the real database gave the same md5 fingerprint.
+- Stopping Postgres gives a 503 with no internal details. After it restarts, the next requests succeed.
 
-## Files changed in Stage 1
-Added: `docker-compose.yml`, `requirements.txt`, `pytest.ini`, `scripts/check_services.py`, `tests/test_check_services.py`, local `.env` (not tracked).
-Changed: `.env.example` (added `REDIS_PASSWORD`), `PLAN.md`, `HANDOFF.md`, `DECISIONS.md`.
-Removed: `scripts/.gitkeep`, `tests/.gitkeep`.
+## Measurements (informal, one request at a time; not benchmarks)
+- `/feed`: about 6 ms. `/stats`: about 700–800 ms over 12 requests.
+- `EXPLAIN ANALYZE` on `/stats`: Seq Scan of all 1,000,000 rows, external merge sort spilling about 25 MB to disk, one run at 1,113 ms execution time. Run `python -m scripts.explain_slow_query` to see a current plan.
+
+## Files changed in Stage 2
+Added: `app/__init__.py`, `app/config.py`, `app/db.py`, `app/main.py`, `app/queries.py`, `app/schema.sql`, `app/schemas.py`, `scripts/seed.py`, `scripts/explain_slow_query.py`, `tests/conftest.py`, `tests/test_api.py`, `tests/test_seed.py`.
+Changed: `requirements.txt`, `.env.example`, `PLAN.md`, `HANDOFF.md`, `DECISIONS.md`.
+Removed: `app/.gitkeep`.
 
 ## Commands that work (PowerShell, from `C:\dev\matchday`)
 ```powershell
 .\.venv\Scripts\Activate.ps1
 docker compose up -d --wait
-docker compose ps
-python scripts\check_services.py
+python -m scripts.seed
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+python -m scripts.explain_slow_query
 python -m pytest -v
 docker compose down
 ```
+Run `python -m scripts.*` from the project root. Interactive docs are at http://127.0.0.1:8000/docs while the server runs.
 
 ## Test results
-`python -m pytest -v`: 23 passed in 33.44s (19 without services, 4 integration). Integration tests need the services running and fail if they are down.
+`python -m pytest -q`: 84 passed in 38.61s, no warnings. Docker services must be running. Tests use a separate `matchday_test` database.
 
 ## Known problems
-- The test suite takes about 33 seconds, mostly connection attempts to closed ports on Windows.
-- Claude's own shell may not have `docker` on PATH until the app restarts. The system PATH does include it.
-- The `py` launcher is installed but not on PATH. Use the venv's `python`.
+- While Postgres is down, each request waits up to 5 seconds (the pool timeout) before its 503.
+- `.venv\Scripts\python.exe` can start a child process, so stopping a server by its launcher's process ID may not stop it right away. Use Ctrl+C in the server's terminal.
+- Claude's own shell may not have `docker` on PATH until the app restarts.
 
 ## Decisions
-See DECISIONS.md D1–D10.
+See DECISIONS.md D1–D15.
 
 ## Exact next step
-Get approval for the Stage 2 plan (FastAPI app, schema, seed data, validated match-feed endpoint, deliberately slow query), then build it.
+Show the Stage 3 plan (import the real StatsBomb match into a small local sample, build a deterministic traffic profile) and wait for approval.
 
 ## Resume prompt
 ```
