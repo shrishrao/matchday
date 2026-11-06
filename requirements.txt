@@ -9,6 +9,9 @@ psycopg-pool==3.3.3
 redis==8.1.0
 python-dotenv==1.2.4
 
+# ===== Load generation =====
+locust==2.47.0
+
 # ===== Testing =====
 pytest==9.2.0
 httpx2==2.16.0

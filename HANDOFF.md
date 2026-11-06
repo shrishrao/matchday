@@ -1,58 +1,61 @@
 # Handoff
 
 ## Current stage and status
-**Stage 3: Match timeline.** Complete and committed. Stage 4 has not started and needs approval.
+**Stage 4: Load generator.** Complete and committed. Stage 5 has not started and needs approval.
+
+GitHub: https://github.com/shrishrao/matchday (private). Stages 0 to 3 were pushed. Commits are pushed only when asked, so check `git status` to see whether later commits are local only.
 
 ## Finished and verified
 **Earlier stages**
 - Repo at `C:\dev\matchday`, branch `main`. Python 3.13.7 venv at `.venv`. Docker Desktop 4.98.0.
 - Postgres 18.6 and Redis 8.10.3 run through Compose, healthy, bound to `127.0.0.1`.
-- FastAPI app with `/health`, `/matches/{id}`, `/matches/{id}/feed` and `/matches/{id}/stats`. It recovers after a Postgres restart.
+- FastAPI app with `/health`, `/matches/{id}`, `/matches/{id}/feed` and `/matches/{id}/stats`, using the real 2022 final (StatsBomb match 3869685).
+- Deterministic 180-second timeline with a stored fingerprint.
 - Machine: 16 logical CPUs, ~24 GB RAM.
 
-**Stage 3**
-- Real match imported: StatsBomb 3869685, Argentina 3–3 France, 2022 World Cup final. The sample has 24 events (10 period markers, 6 goals, 8 shootout kicks) in 5.7 KB, from pinned StatsBomb commit `4b73468`.
-- Importing twice gives identical bytes.
-- `data/timeline_3869685.json`: 180 seconds, 19 moments, peak 8.0× (at the cap). Fingerprint `2ada46e3ea75793636f1add8dea6b8ca4b06bb0429ea11572f12a4d62daef733`.
-- Building twice gives identical bytes, and separate processes with different `PYTHONHASHSEED` give the same fingerprint.
-- The database and API now use the real match. `/feed` is in true order across overlapping minutes and uses `after_seconds`.
-- Fan reactions are still generated, weighted toward the real goal and shootout minutes.
+**Stage 4**
+- `python -m scripts.run_replay --short` runs a 30-second replay. Without `--short`, it runs 180 seconds.
+- Real replays against the seeded database: the user count was on target for 100% of seconds in both the short and full runs.
+- Non-local targets are refused by both the command and Locust itself. A test confirms a direct Locust run sends 0 requests to a non-allowed address.
+- Locust's web page and distributed modes are refused.
 
-## Measurements (informal, one request at a time; not benchmarks)
-- `/feed`: about 8–31 ms over 6 requests. `/stats`: about 880–1,440 ms over 6 requests. `EXPLAIN ANALYZE`: 1,057 ms execution, Seq Scan, external merge sort using about 25 MB of disk.
-- These are not comparable with Stage 2, because the data shape changed.
+## Measurements (one informal full replay at 5 base users; not a benchmark)
+- 2,392 requests, 0 failures, 13.25 requests per second, peak 40 users.
+- Median response: `/feed` 7 ms, `/matches/[id]` 6 ms, `/stats` 890 ms. Overall p95 870 ms.
+- The system did not fail at this load. Stage 6 increases it.
 
-## Files changed in Stage 3
-Added: `app/timeline.py`, `data/match_3869685_sample.json`, `data/traffic_profile.json`, `data/timeline_3869685.json`, `scripts/import_statsbomb.py`, `scripts/build_timeline.py`, `tests/test_import.py`, `tests/test_timeline.py`.
-Changed: `app/main.py`, `app/queries.py`, `app/schema.sql`, `app/schemas.py`, `scripts/seed.py`, `tests/test_api.py`, `tests/test_seed.py`, `README.md`, `PLAN.md`, `HANDOFF.md`, `DECISIONS.md`.
-Removed: `data/.gitkeep`.
+## Files changed in Stage 4
+Added: `loadgen/__init__.py`, `loadgen/safety.py`, `loadgen/schedule.py`, `loadgen/locustfile.py`, `scripts/run_replay.py`, `tests/test_safety.py`, `tests/test_replay_shape.py`.
+Changed: `requirements.txt`, `PLAN.md`, `HANDOFF.md`, `DECISIONS.md`.
+Removed: `loadgen/.gitkeep`.
 
 ## Commands that work (PowerShell, from `C:\dev\matchday`)
 ```powershell
 .\.venv\Scripts\Activate.ps1
 docker compose up -d --wait
-python -m scripts.build_timeline
 python -m scripts.seed
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+python -m scripts.run_replay --short
+python -m scripts.run_replay
 python -m pytest -q
 docker compose down
 ```
-`python -m scripts.import_statsbomb` only needs rerunning to regenerate the committed sample, and needs internet access.
+Run the API in one terminal and the replay in another. Options: `--base-users`, `--replay-seconds`, `--host` (local only).
 
 ## Test results
-`python -m pytest -q`: 120 passed in 37.52s, no warnings. Docker services must be running. Tests use a separate `matchday_test` database.
+`python -m pytest -q`: 202 passed in 67.02s, no warnings. Docker services must be running. Tests use a separate `matchday_test` database, and one test runs a real 12-second replay on port 8765.
 
 ## Known problems
-- The 8 shootout kicks fall within about 6 replay seconds, so they merge into one surge at the 8× cap. This is a side effect of compressing the match to 3 minutes (D17).
-- While Postgres is down, each request waits up to 5 seconds before its 503.
+- Locust and the API share this computer's CPU, so heavy load can slow Locust itself and affect measurements.
+- Simulated fans wait for each response, so a slow server receives fewer requests (D25).
 - `.venv\Scripts\python.exe` can start a child process, so stopping a server by its launcher's process ID may not stop it. Use Ctrl+C in the server's terminal.
 - Claude's own shell may not have `docker` on PATH until the app restarts.
 
 ## Decisions
-See DECISIONS.md D1–D21.
+See DECISIONS.md D1–D26.
 
 ## Exact next step
-Show the Stage 4 plan (Locust replay driven by the timeline, local-only target check, one documented command) and wait for approval.
+Show the Stage 5 plan (record p50 and p95 latency, request rate, error rate, database query count and cache hit rate, and save each run as structured JSON) and wait for approval.
 
 ## Resume prompt
 ```

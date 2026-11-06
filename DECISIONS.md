@@ -106,3 +106,26 @@ Each entry: decision, alternatives considered, and tradeoffs.
 - **Alternative:** a migration tool such as Alembic.
 - **Why:** all data can be regenerated from committed files and a fixed seed, so a migration tool adds nothing yet. Seeding refuses non-local hosts.
 - **Tradeoff:** any manual changes to the database are lost when seeding.
+
+## D22: Private GitHub repo for now (Stage 4)
+- **Decision:** `shrishrao/matchday` is private, and commits are pushed only when asked.
+- **Alternative:** public from the start.
+- **Why:** the user's choice while the project is unfinished. Before going public, StatsBomb's name and logo should be in the README, because the repo shares a sample of its data.
+
+## D23: Layered local-only checks in the load generator (Stage 4)
+- **Decision:** both the run command and `locustfile.py` allow only `127.0.0.1`, `localhost` (when it resolves only to loopback) and `::1`. The Locust file also refuses its web page and distributed mode, and exits the process immediately if a check fails. Redirects are not followed.
+- **Alternative:** one check in the run command.
+- **Why:** running Locust directly would skip a check placed only in the command. Exact matching avoids lookalikes such as `127.0.0.1.example.com`.
+- **Tradeoff:** a stricter allow-list refuses valid loopback addresses such as `127.0.0.2`, and only the hard exit stops Locust because it catches errors raised in event handlers.
+
+## D24: Locust details kept out of testable code (Stage 4)
+- **Decision:** `loadgen/safety.py` and `loadgen/schedule.py` do not import Locust. Tests start Locust as a separate process.
+- **Why:** importing Locust patches Python's networking through gevent, which could interfere with database tests running in the same process.
+
+## D25: Fan behaviour and starting scale (Stage 4)
+- **Decision:** 5 base users (peak 40) and a 70/20/10 mix of feed, match and stats. Fans wait 0.5–1.5 seconds between requests.
+- **Why:** a safe starting point. Stage 6 tunes the user count on this machine.
+- **Tradeoff:** the mix is an assumption. Fans also wait for each response, so a slow server gets fewer requests, which can hide some overload. Stage 6 needs to account for this.
+
+## D26: Short replays shrink spike lengths too (Stage 4)
+- **Why:** without this, spike lengths meant for 180 seconds would overlap across a 30-second replay and hold it near the cap. The full replay still matches the committed timeline.
