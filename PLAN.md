@@ -15,8 +15,8 @@ Priority: backend depth first, with a clean dashboard.
 
 | # | Stage | Status |
 |---|-------|--------|
-| 0 | Setup | Verified, not yet committed |
-| 1 | Local services: Postgres + Redis via Compose, health checks | Verified, not yet committed |
+| 0 | Setup | Complete (committed) |
+| 1 | Local services: Postgres + Redis via Compose, health checks | Complete (committed) |
 | 2 | Backend baseline: FastAPI, schema, seed data, validated endpoint, deliberately slow query | Not started |
 | 3 | Match timeline: one StatsBomb match → deterministic traffic profile | Not started |
 | 4 | Load generator: Locust replay, local-only target check | Not started |

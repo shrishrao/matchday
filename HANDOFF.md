@@ -1,7 +1,7 @@
 # Handoff
 
 ## Current stage and status
-**Stage 1: Local services.** Built and verified. **Not committed:** the repo has no commits yet, including Stage 0. Stage 2 has not started and needs approval.
+**Stage 1: Local services.** Complete and committed. Stage 2 is planned, and its build is waiting for approval.
 
 ## Finished and verified
 **Stage 0**
@@ -36,7 +36,6 @@ docker compose down
 `python -m pytest -v`: 23 passed in 33.44s (19 without services, 4 integration). Integration tests need the services running and fail if they are down.
 
 ## Known problems
-- Repo has no commits. The user reported committing Stage 0, but `git log` shows none and no matching commit was found in the likely folders. Cause unknown.
 - The test suite takes about 33 seconds, mostly connection attempts to closed ports on Windows.
 - Claude's own shell may not have `docker` on PATH until the app restarts. The system PATH does include it.
 - The `py` launcher is installed but not on PATH. Use the venv's `python`.
@@ -45,8 +44,7 @@ docker compose down
 See DECISIONS.md D1–D10.
 
 ## Exact next step
-1. User makes the Stage 0 and Stage 1 commits and confirms with `git log --oneline`.
-2. Show the Stage 2 plan (FastAPI app, schema, seed data, validated match-feed endpoint, deliberately slow query) and wait for approval.
+Get approval for the Stage 2 plan (FastAPI app, schema, seed data, validated match-feed endpoint, deliberately slow query), then build it.
 
 ## Resume prompt
 ```
