@@ -1,33 +1,37 @@
 # Handoff
 
 ## Current stage and status
-**Stage 4: Load generator.** Complete and committed. Stage 5 has not started and needs approval.
+**Stage 5: Metrics.** Complete and committed. Stage 6 has not started and needs approval.
 
-GitHub: https://github.com/shrishrao/matchday (private). Stages 0 to 3 were pushed. Commits are pushed only when asked, so check `git status` to see whether later commits are local only.
+GitHub: https://github.com/shrishrao/matchday (private). Commits are pushed only when asked, so check `git status -sb` to see whether `main` is ahead of `origin/main`.
 
 ## Finished and verified
 **Earlier stages**
 - Repo at `C:\dev\matchday`, branch `main`. Python 3.13.7 venv at `.venv`. Docker Desktop 4.98.0.
 - Postgres 18.6 and Redis 8.10.3 run through Compose, healthy, bound to `127.0.0.1`.
-- FastAPI app with `/health`, `/matches/{id}`, `/matches/{id}/feed` and `/matches/{id}/stats`, using the real 2022 final (StatsBomb match 3869685).
-- Deterministic 180-second timeline with a stored fingerprint.
+- FastAPI app using the real 2022 final (StatsBomb match 3869685), with a deterministic 180-second timeline.
+- Local-only Locust replay: `python -m scripts.run_replay [--short]`.
 - Machine: 16 logical CPUs, ~24 GB RAM.
 
-**Stage 4**
-- `python -m scripts.run_replay --short` runs a 30-second replay. Without `--short`, it runs 180 seconds.
-- Real replays against the seeded database: the user count was on target for 100% of seconds in both the short and full runs.
-- Non-local targets are refused by both the command and Locust itself. A test confirms a direct Locust run sends 0 requests to a non-allowed address.
-- Locust's web page and distributed modes are refused.
+**Stage 5**
+- Every replay saves `results/runs/run_<UTC time>.json`, which git ignores. It records:
+  - p50, p95, p99 and max latency, overall and per endpoint
+  - request rate, and failures with error rate
+  - database queries, in total and per request
+  - cache hit rate: null, because there is no cache yet
+  - one row per second: users asked for and actual, requests, failures, p50, p95, database queries
+  - settings (including protections, all off) and the environment (git commit, CPUs, OS)
+- The API exposes `/internal/metrics` with its query counter and cache status.
+- Checked against Locust's own table: our p95 of 979.4 ms against its approximate 980 ms. Measured queries per request (1.81) match what the request mix predicts (1.8).
+- Kept example: `results/examples/stage5_full_replay_5_base_users.json` (real run).
 
-## Measurements (one informal full replay at 5 base users; not a benchmark)
-- 2,392 requests, 0 failures, 13.25 requests per second, peak 40 users.
-- Median response: `/feed` 7 ms, `/matches/[id]` 6 ms, `/stats` 890 ms. Overall p95 870 ms.
-- The system did not fail at this load. Stage 6 increases it.
+## Measurements (one full replay at 5 base users, peak 40; not yet a benchmark)
+- 2,385 requests, 0 failures, 13.25 per second, p50 8.6 ms, p95 938.9 ms, 4,327 database queries (1.814 per request).
+- The system is not under stress at this load. Stage 6 increases it.
 
-## Files changed in Stage 4
-Added: `loadgen/__init__.py`, `loadgen/safety.py`, `loadgen/schedule.py`, `loadgen/locustfile.py`, `scripts/run_replay.py`, `tests/test_safety.py`, `tests/test_replay_shape.py`.
-Changed: `requirements.txt`, `PLAN.md`, `HANDOFF.md`, `DECISIONS.md`.
-Removed: `loadgen/.gitkeep`.
+## Files changed in Stage 5
+Added: `app/metrics.py`, `loadgen/results.py`, `tests/test_results.py`, `results/examples/stage5_full_replay_5_base_users.json`.
+Changed: `app/queries.py`, `app/main.py`, `app/schemas.py`, `loadgen/locustfile.py`, `loadgen/schedule.py`, `scripts/run_replay.py`, `tests/test_api.py`, `tests/test_replay_shape.py`, `.gitignore`, `PLAN.md`, `HANDOFF.md`, `DECISIONS.md`.
 
 ## Commands that work (PowerShell, from `C:\dev\matchday`)
 ```powershell
@@ -40,22 +44,23 @@ python -m scripts.run_replay
 python -m pytest -q
 docker compose down
 ```
-Run the API in one terminal and the replay in another. Options: `--base-users`, `--replay-seconds`, `--host` (local only).
+Run the API in one terminal and replays in another. Restart the API after code changes, or the replay stops with a message about `/internal/metrics`.
 
 ## Test results
-`python -m pytest -q`: 202 passed in 67.02s, no warnings. Docker services must be running. Tests use a separate `matchday_test` database, and one test runs a real 12-second replay on port 8765.
+`python -m pytest -q`: 240 passed in 78.22s, no warnings. Docker services must be running. Tests use a separate `matchday_test` database. One test runs a real 12-second replay on port 8765.
 
 ## Known problems
-- Locust and the API share this computer's CPU, so heavy load can slow Locust itself and affect measurements.
-- Simulated fans wait for each response, so a slow server receives fewer requests (D25).
-- `.venv\Scripts\python.exe` can start a child process, so stopping a server by its launcher's process ID may not stop it. Use Ctrl+C in the server's terminal.
+- After a database restart, a pool full of dead connections can return about two 503s before recovering (D32).
+- About once per full replay, a Locust tick skips a second, so that second has no row (D30).
+- Locust and the API share this computer's CPU. Simulated fans wait for each response, so a slow server gets fewer requests (D25).
+- `.venv\Scripts\python.exe` can start a child process, so use Ctrl+C in the server's terminal to stop it.
 - Claude's own shell may not have `docker` on PATH until the app restarts.
 
 ## Decisions
-See DECISIONS.md D1–D26.
+See DECISIONS.md D1–D32.
 
 ## Exact next step
-Show the Stage 5 plan (record p50 and p95 latency, request rate, error rate, database query count and cache hit rate, and save each run as structured JSON) and wait for approval.
+Show the Stage 6 plan (tune the traffic until the unprotected system visibly degrades on this machine, and save the settings and results) and wait for approval.
 
 ## Resume prompt
 ```

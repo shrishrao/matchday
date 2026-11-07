@@ -20,6 +20,7 @@ from loadgen.schedule import (
     summarize_trace,
     users_for,
 )
+from loadgen.results import RunResult
 from scripts import run_replay
 
 LIVE_TEST_PORT = 8765
@@ -212,18 +213,44 @@ def live_api(test_settings):
 
 
 @pytest.mark.integration
-def test_real_replay_sends_requests_and_follows_the_timeline(live_api, tmp_path, monkeypatch, capfd):
-    monkeypatch.setattr(run_replay, "TRACE_FOLDER", tmp_path)
+def test_real_replay_saves_a_measured_result(live_api, tmp_path, monkeypatch, capfd):
+    monkeypatch.setattr(run_replay, "RAW_FOLDER", tmp_path / "raw")
+    monkeypatch.setattr(run_replay, "RUNS_FOLDER", tmp_path / "runs")
     code = run_replay.main(["--replay-seconds", "12", "--base-users", "2", "--host", live_api])
     captured = capfd.readouterr()
     output = captured.out + captured.err
 
     assert code == 0, output
     assert "Traffic is simulated" in output
-    assert "Followed the timeline: True" in output
+    assert "followed the timeline: True" in output
     assert "/matches/[id]/feed" in output
 
-    trace = json.loads(next(tmp_path.glob("user_trace_*.json")).read_text(encoding="utf-8"))
+    result = RunResult.model_validate_json(next((tmp_path / "runs").glob("run_*.json")).read_text(encoding="utf-8"))
     plan = build_plan(12, 2)
-    assert [row["target"] for row in trace] == list(plan.targets[: len(trace)])
-    assert len(trace) >= 11
+    assert [row.users_target for row in result.seconds] == list(plan.targets[: len(result.seconds)])
+    assert result.duration_seconds >= 11
+    assert result.overall.requests > 0
+    assert result.overall.failures == 0
+    assert result.overall.p50_ms is not None and result.overall.p95_ms >= result.overall.p50_ms
+    assert result.database.queries > 0
+    assert result.cache.hit_rate is None
+    assert result.settings["timeline_fingerprint"] == plan.timeline_fingerprint
+    assert result.settings["protections"] == run_replay.PROTECTIONS
+    assert sum(row.requests for row in result.seconds) <= result.overall.requests
+
+
+def test_run_command_explains_when_metrics_are_missing(monkeypatch, capsys):
+    monkeypatch.setattr(run_replay, "http_status", lambda _: 200)
+    monkeypatch.setattr(run_replay, "read_server_metrics", lambda _: None)
+    monkeypatch.setattr(run_replay, "run_locust", lambda *_: pytest.fail("Locust should not start"))
+    assert run_replay.main(["--short"]) == 2
+    assert "Restart the API" in capsys.readouterr().out
+
+
+def test_plan_records_the_fingerprint_of_its_own_timeline():
+    full = build_plan(base_users=5)
+    timeline = json.loads(TIMELINE_PATH.read_text(encoding="utf-8"))
+    from app.timeline import fingerprint
+
+    assert full.timeline_fingerprint == fingerprint(timeline)
+    assert build_plan(30, 5).timeline_fingerprint != full.timeline_fingerprint

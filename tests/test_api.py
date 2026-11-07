@@ -108,10 +108,50 @@ def test_stats_breakdown_is_consistent(client):
         assert 1 <= minute["unique_fans"] <= minute["total"]
 
 
+# ===== Server metrics =====
+def queries_after(client, path):
+    """Return how many database queries one request added."""
+    before = client.get("/internal/metrics").json()["db_queries_total"]
+    client.get(path)
+    return client.get("/internal/metrics").json()["db_queries_total"] - before
+
+
+@pytest.mark.parametrize(
+    ("path", "expected"),
+    [
+        ("/health", 1),
+        (f"/matches/{MATCH_ID}", 1),
+        (f"/matches/{MATCH_ID}/feed", 2),
+        (f"/matches/{MATCH_ID}/stats", 2),
+        (f"/matches/{UNKNOWN_MATCH}/stats", 1),
+        ("/matches/0", 0),
+        (f"/matches/{MATCH_ID}/feed?limit=0", 0),
+        ("/internal/metrics", 0),
+    ],
+)
+def test_metrics_count_each_database_query(client, path, expected):
+    assert queries_after(client, path) == expected
+
+
+def test_metrics_report_that_cache_is_not_measured_yet(client):
+    cache = client.get("/internal/metrics").json()["cache"]
+    assert cache == {"enabled": False, "hits": None, "misses": None}
+
+
+def test_metrics_count_queries_from_concurrent_requests(client):
+    import concurrent.futures
+
+    before = client.get("/internal/metrics").json()["db_queries_total"]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+        statuses = list(pool.map(lambda _: client.get(f"/matches/{MATCH_ID}").status_code, range(40)))
+    after = client.get("/internal/metrics").json()["db_queries_total"]
+    assert statuses == [200] * 40
+    assert after - before == 40
+
+
 # ===== Database failures =====
-def test_api_recovers_when_pool_connections_are_killed(client, connection):
-    for _ in range(3):
-        assert client.get("/health").status_code == 200
+def kill_api_connections(connection):
+    """Terminate every other session on the test database, as a database restart would."""
     connection.execute(
         """
         SELECT pg_terminate_backend(pid)
@@ -120,8 +160,39 @@ def test_api_recovers_when_pool_connections_are_killed(client, connection):
         """
     )
     connection.commit()
-    statuses = [client.get("/health").status_code for _ in range(5)]
+
+
+def test_small_pool_recovers_at_once_when_connections_are_killed(test_settings, connection):
+    with TestClient(create_app(test_settings)) as fresh_client:
+        assert fresh_client.get("/health").status_code == 200
+        kill_api_connections(connection)
+        statuses = [fresh_client.get("/health").status_code for _ in range(5)]
     assert statuses == [200] * 5
+
+
+def test_full_pool_recovers_within_seconds_when_connections_are_killed(test_settings, connection):
+    # A pool full of dead connections is checked one at a time with growing waits, so the
+    # first requests can time out (503) before a healthy connection is found.
+    import concurrent.futures
+    import time
+
+    with TestClient(create_app(test_settings)) as fresh_client:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+            list(pool.map(lambda _: fresh_client.get(f"/matches/{MATCH_ID}"), range(40)))
+        kill_api_connections(connection)
+
+        responses = []
+        deadline = time.monotonic() + 20
+        while time.monotonic() < deadline:
+            response = fresh_client.get("/health")
+            responses.append(response)
+            if response.status_code == 200:
+                break
+        later = [fresh_client.get("/health").status_code for _ in range(5)]
+
+    assert responses[-1].status_code == 200
+    assert all(r.status_code == 503 and r.json() == {"detail": "Database unavailable"} for r in responses[:-1])
+    assert later == [200] * 5
 
 
 @pytest.mark.parametrize(

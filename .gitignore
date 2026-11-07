@@ -12,8 +12,10 @@ __pycache__/
 htmlcov/
 
 # ===== Run output =====
-# Raw run files stay local; curated benchmark files are committed deliberately later.
+# Raw records and everyday run results stay local.
+# Chosen results are copied to results/examples or results/benchmarks and committed deliberately.
 results/raw/
+results/runs/
 *.log
 
 # ===== Editors and OS =====

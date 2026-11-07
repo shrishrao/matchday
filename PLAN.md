@@ -20,7 +20,7 @@ Priority: backend depth first, with a clean dashboard.
 | 2 | Backend baseline: FastAPI, schema, seed data, validated endpoint, deliberately slow query | Complete (committed) |
 | 3 | Match timeline: one StatsBomb match → deterministic traffic profile | Complete (committed) |
 | 4 | Load generator: Locust replay, local-only target check | Complete (committed) |
-| 5 | Metrics: p50/p95, request rate, error rate, DB query count, cache hit rate → JSON | Not started |
+| 5 | Metrics: p50/p95, request rate, error rate, DB query count, cache hit rate → JSON | Complete (committed) |
 | 6 | Failure baseline: tune until the unprotected system degrades repeatably | Not started |
 | 7 | Cache: Redis cache behind a toggle, invalidation tests | Not started |
 | 8 | Stampede protection: refill lock, expiry, failed refresh | Not started |

@@ -6,6 +6,7 @@ Start replays with: python -m scripts.run_replay
 import json
 import os
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -13,14 +14,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from locust import HttpUser, LoadTestShape, between, events, task
 
 from loadgen.safety import UnsafeTargetError, require_local_target, require_safe_run_mode
-from loadgen.schedule import TRACE_PATH_VARIABLE, plan_from_environment
+from loadgen.schedule import REQUESTS_PATH_VARIABLE, TRACE_PATH_VARIABLE, plan_from_environment
 
 PLAN = plan_from_environment(os.environ)
 REQUEST_TIMEOUT_SECONDS = 10
 PROGRESS_EVERY_SECONDS = 15
 REFUSED_EXIT_CODE = 2
 
-trace: list[dict[str, int]] = []
+trace: list[dict] = []
+request_log = None
 
 
 # ===== Safety =====
@@ -34,6 +36,33 @@ def refuse_unsafe_runs(environment, **_) -> None:
     except UnsafeTargetError as error:
         print(f"Refused: {error}", file=sys.stderr, flush=True)
         os._exit(REFUSED_EXIT_CODE)
+
+
+# ===== Request records =====
+@events.test_start.add_listener
+def open_request_log(**_) -> None:
+    """Open the request record file, if the run command asked for one."""
+    global request_log
+    path = os.environ.get(REQUESTS_PATH_VARIABLE)
+    if path:
+        request_log = open(path, "w", encoding="utf-8")
+
+
+@events.request.add_listener
+def record_request(name, response_time, exception, **_) -> None:
+    """Write one line per finished request: its name, time taken, and whether it failed."""
+    if request_log is not None:
+        request_log.write(
+            json.dumps(
+                {
+                    "name": name,
+                    "end_time": time.time(),
+                    "response_time_ms": response_time,
+                    "failed": exception is not None,
+                }
+            )
+            + "\n"
+        )
 
 
 # ===== Simulated fans =====
@@ -77,7 +106,7 @@ class ReplayShape(LoadTestShape):
 
         second = int(run_time)
         actual = self.get_current_user_count()
-        trace.append({"second": second, "target": target, "actual": actual})
+        trace.append({"second": second, "time": time.time(), "target": target, "actual": actual})
 
         while self.next_moment < len(PLAN.moments) and PLAN.moments[self.next_moment][0] <= run_time:
             print(f"[{second:>4}s] {PLAN.moments[self.next_moment][1]}", flush=True)
@@ -90,7 +119,9 @@ class ReplayShape(LoadTestShape):
 # ===== Trace output =====
 @events.quitting.add_listener
 def save_trace(**_) -> None:
-    """Save the per-second user record, if the run command asked for one."""
+    """Close the request records and save the per-second user record, if asked for."""
+    if request_log is not None:
+        request_log.close()
     path = os.environ.get(TRACE_PATH_VARIABLE)
     if path:
         Path(path).write_text(json.dumps(trace, indent=2) + "\n", encoding="utf-8")

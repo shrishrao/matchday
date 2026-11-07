@@ -127,5 +127,34 @@ Each entry: decision, alternatives considered, and tradeoffs.
 - **Why:** a safe starting point. Stage 6 tunes the user count on this machine.
 - **Tradeoff:** the mix is an assumption. Fans also wait for each response, so a slow server gets fewer requests, which can hide some overload. Stage 6 needs to account for this.
 
+## D27: Our own request records, not Locust's statistics (Stage 5)
+- **Decision:** the Locust file writes one line per request (name, finish time, response time, failed). `loadgen/results.py` calculates nearest-rank percentiles from these records.
+- **Alternative:** Locust's built-in CSV or JSON statistics.
+- **Why:** Locust labels its percentiles "approximated". Nearest-rank always returns a value that really happened, and the same records give the per-second rows.
+- **Tradeoff:** a larger raw file per run. Raw files stay in the git-ignored `results/raw`.
+
+## D28: Count queries inside the API, and read them from `/internal/metrics` (Stage 5)
+- **Decision:** every route statement goes through `run_query`, which increments a thread-safe counter. The run command reads the counter every 0.5 seconds during a replay.
+- **Alternatives:** Postgres's `pg_stat_statements` extension, or counting from Locust.
+- **Why:** this needs no database extension, and it counts exactly the work the routes ask for.
+- **Tradeoff:** the pool's connection checks are not counted. The endpoint has no authentication, which is acceptable only because the API listens on `127.0.0.1`.
+
+## D29: "Not measured" is stored as null, never as 0 (Stage 5)
+- **Why:** there is no cache until Stage 7. Reporting a 0% hit rate would claim a measurement that never happened, so the hit rate, and anything else that could not be measured, is null.
+
+## D30: Per-second rows follow real tick times (Stage 5)
+- **Decision:** each row covers the time from one Locust tick to the next.
+- **Why:** ticks run about 1.001 seconds apart, so one second is sometimes skipped. In a 180-second replay, second 145 was skipped. Fixed one-second slots would have mislabelled rows from then on.
+- **Tradeoff:** a skipped second has no row and its target is never applied, about once per full replay.
+
+## D31: Everyday run results are git-ignored; chosen ones are committed (Stage 5)
+- **Decision:** results go to `results/runs` (ignored). One real full replay is kept in `results/examples`.
+- **Why:** committing every development run would clutter history. Stage 6 and Stage 11 results will be committed on purpose.
+
+## D32: The pool can briefly fail when every pooled connection is dead (Stage 5)
+- **Finding:** with 8 dead pooled connections, the pool checks them one at a time with growing waits (1 s, 2 s, 4 s), so it hits the 5-second limit and returns two 503s before recovering. A 2-connection pool recovers at once.
+- **Decision:** document it and test the real guarantee: clean 503s, then recovery within seconds. Not fixed now.
+- **Why:** it only happens after a database restart. Fixing it means customising the pool, which is outside Stage 5.
+
 ## D26: Short replays shrink spike lengths too (Stage 4)
 - **Why:** without this, spike lengths meant for 180 seconds would overlap across a 30-second replay and hold it near the cap. The full replay still matches the committed timeline.

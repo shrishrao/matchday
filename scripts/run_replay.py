@@ -1,4 +1,4 @@
-"""Run a replay against the local API. Run with: python -m scripts.run_replay --short
+"""Run a replay against the local API and save its result. Run with: python -m scripts.run_replay --short
 
 Traffic is simulated. StatsBomb provides match events, not platform traffic.
 """
@@ -6,18 +6,25 @@ Traffic is simulated. StatsBomb provides match events, not platform traffic.
 import argparse
 import json
 import os
+import platform
 import subprocess
 import sys
+import threading
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
+from importlib.metadata import version
 from pathlib import Path
 
-from loadgen.safety import UnsafeTargetError, require_local_target
+from app.timeline import serialize
+from loadgen.results import RunResult, build_result
+from loadgen.safety import require_local_target
 from loadgen.schedule import (
     BASE_USERS_VARIABLE,
     DEFAULT_BASE_USERS,
     REPLAY_SECONDS_VARIABLE,
+    REQUESTS_PATH_VARIABLE,
     SHORT_REPLAY_SECONDS,
     TRACE_PATH_VARIABLE,
     ReplayPlan,
@@ -27,17 +34,26 @@ from loadgen.schedule import (
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 LOCUSTFILE = PROJECT_ROOT / "loadgen" / "locustfile.py"
-TRACE_FOLDER = PROJECT_ROOT / "results" / "raw"
+RAW_FOLDER = PROJECT_ROOT / "results" / "raw"
+RUNS_FOLDER = PROJECT_ROOT / "results" / "runs"
 DEFAULT_HOST = "http://127.0.0.1:8000"
 CHECK_TIMEOUT_SECONDS = 5
+SAMPLE_EVERY_SECONDS = 0.5
+PROTECTIONS = {"cache": False, "stampede_lock": False, "rate_limit": False, "load_shedding": False}
+REQUEST_MIX = {"/matches/[id]/feed": 7, "/matches/[id]": 2, "/matches/[id]/stats": 1}
 
 
-# ===== Pre-flight =====
-def http_status(url: str) -> int | None:
-    """Return a URL's HTTP status, or None if nothing answered. Proxies are never used."""
+# ===== HTTP helpers =====
+def open_url(url: str):
+    """Open a URL without any proxy, so local requests stay local."""
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    return opener.open(url, timeout=CHECK_TIMEOUT_SECONDS)
+
+
+def http_status(url: str) -> int | None:
+    """Return a URL's HTTP status, or None if nothing answered."""
     try:
-        with opener.open(url, timeout=CHECK_TIMEOUT_SECONDS) as response:
+        with open_url(url) as response:
             return response.status
     except urllib.error.HTTPError as error:
         return error.code
@@ -45,6 +61,16 @@ def http_status(url: str) -> int | None:
         return None
 
 
+def read_server_metrics(host: str) -> dict | None:
+    """Read the API's counters, or None if they could not be read."""
+    try:
+        with open_url(f"{host}/internal/metrics") as response:
+            return json.loads(response.read())
+    except (urllib.error.URLError, OSError, ValueError):
+        return None
+
+
+# ===== Pre-flight =====
 def preflight_problem(host: str, plan: ReplayPlan) -> str | None:
     """Describe why a replay cannot start yet, or return None if the API is ready."""
     health = http_status(f"{host}/health")
@@ -56,11 +82,46 @@ def preflight_problem(host: str, plan: ReplayPlan) -> str | None:
     match = http_status(f"{host}/matches/{plan.match_id}")
     if match != 200:
         return f"Match {plan.match_id} is not loaded (status: {match}). Run: python -m scripts.seed"
+    if read_server_metrics(host) is None:
+        return "The API's /internal/metrics endpoint is missing. Restart the API so it runs the latest code."
     return None
 
 
+# ===== Server counter sampling =====
+class CounterSampler:
+    """Read the API's counters in the background while a replay runs."""
+
+    def __init__(self, host: str) -> None:
+        self.host = host
+        self.samples: list[dict] = []
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._run, daemon=True)
+
+    def _take(self) -> None:
+        """Record one reading with the time it was taken."""
+        reading = read_server_metrics(self.host)
+        if reading is not None:
+            self.samples.append({"time": time.time(), **reading})
+
+    def _run(self) -> None:
+        """Take readings until asked to stop."""
+        while not self._stop.is_set():
+            self._take()
+            self._stop.wait(SAMPLE_EVERY_SECONDS)
+
+    def __enter__(self) -> "CounterSampler":
+        self._take()
+        self._thread.start()
+        return self
+
+    def __exit__(self, *_) -> None:
+        self._stop.set()
+        self._thread.join()
+        self._take()
+
+
 # ===== Replay =====
-def run_locust(host: str, plan: ReplayPlan, trace_path: Path) -> int:
+def run_locust(host: str, plan: ReplayPlan, trace_path: Path, requests_path: Path) -> int:
     """Run Locust to the end of the replay, and return its exit code."""
     env = {
         **os.environ,
@@ -68,6 +129,7 @@ def run_locust(host: str, plan: ReplayPlan, trace_path: Path) -> int:
         REPLAY_SECONDS_VARIABLE: str(len(plan.targets)),
         BASE_USERS_VARIABLE: str(plan.base_users),
         TRACE_PATH_VARIABLE: str(trace_path),
+        REQUESTS_PATH_VARIABLE: str(requests_path),
     }
     command = [
         sys.executable, "-m", "locust",
@@ -80,19 +142,80 @@ def run_locust(host: str, plan: ReplayPlan, trace_path: Path) -> int:
     return subprocess.run(command, cwd=PROJECT_ROOT, env=env, check=False).returncode
 
 
-def report_trace(trace_path: Path) -> bool:
-    """Print how closely the real user count followed the plan, and return whether it did."""
-    if not trace_path.exists():
-        print("No user record was saved, so following the timeline could not be checked.")
-        return False
-    summary = summarize_trace(json.loads(trace_path.read_text(encoding="utf-8")))
-    print(
-        f"Followed the timeline: {summary['follows_timeline']} "
-        f"({summary['share_on_target']:.1%} of {summary['seconds']} seconds on target, "
-        f"largest gap {summary['largest_gap']} users, peak {summary['peak_actual']} users)"
+# ===== Result =====
+def git_state() -> dict:
+    """Return the current commit and whether there are uncommitted changes."""
+    def git(*arguments: str) -> str:
+        result = subprocess.run(["git", *arguments], cwd=PROJECT_ROOT, capture_output=True, text=True, check=False)
+        return result.stdout.strip()
+
+    return {"commit": git("rev-parse", "--short", "HEAD") or None, "uncommitted_changes": bool(git("status", "--porcelain"))}
+
+
+def describe_environment() -> dict:
+    """Describe the machine and software, so results can be compared fairly."""
+    return {
+        "os": platform.platform(),
+        "python": platform.python_version(),
+        "logical_cpus": os.cpu_count(),
+        "locust": version("locust"),
+        "git": git_state(),
+        "load_generator_on_same_machine": True,
+    }
+
+
+def save_result(
+    run_id: str,
+    created_at: str,
+    host: str,
+    plan: ReplayPlan,
+    raw_folder: Path,
+    samples: list[dict],
+) -> RunResult:
+    """Build the result from the raw files and write it to the runs folder."""
+    trace = json.loads((raw_folder / "trace.json").read_text(encoding="utf-8"))
+    requests_file = raw_folder / "requests.jsonl"
+    records = [json.loads(line) for line in requests_file.read_text(encoding="utf-8").splitlines() if line]
+    result = build_result(
+        run_id=run_id,
+        created_at=created_at,
+        settings={
+            "replay_seconds": len(plan.targets),
+            "base_users": plan.base_users,
+            "peak_users": plan.peak_users,
+            "host": host,
+            "match_id": plan.match_id,
+            "timeline_fingerprint": plan.timeline_fingerprint,
+            "protections": PROTECTIONS,
+            "request_mix": REQUEST_MIX,
+        },
+        environment=describe_environment(),
+        records=records,
+        trace=trace,
+        samples=samples,
+        follows_timeline=summarize_trace(trace)["follows_timeline"],
     )
-    print(f"User record: {trace_path}")
-    return summary["follows_timeline"]
+    RUNS_FOLDER.mkdir(parents=True, exist_ok=True)
+    (RUNS_FOLDER / f"{run_id}.json").write_text(serialize(result.model_dump()), encoding="utf-8", newline="\n")
+    return result
+
+
+def print_result(result: RunResult) -> None:
+    """Print the headline numbers from a saved result."""
+    overall = result.overall
+
+    def number(value, suffix: str = "") -> str:
+        return "not measured" if value is None else f"{value}{suffix}"
+
+    error_rate = "n/a" if overall.error_rate is None else f"{overall.error_rate:.2%}"
+    print("Result (measured from this run):")
+    print(f"  requests: {overall.requests}, failures: {overall.failures} ({error_rate})")
+    print(f"  request rate: {result.request_rate_per_second} per second")
+    print(f"  latency: p50 {number(overall.p50_ms, ' ms')}, p95 {number(overall.p95_ms, ' ms')}")
+    print(f"  database queries: {number(result.database.queries)} ({number(result.database.queries_per_request)} per request)")
+    print(f"  cache hit rate: {number(result.cache.hit_rate)} (cache enabled: {result.cache.enabled})")
+    print(f"  followed the timeline: {result.follows_timeline}")
+    print(f"  saved: {RUNS_FOLDER / (result.run_id + '.json')}")
 
 
 # ===== Command line =====
@@ -108,7 +231,7 @@ def parse_arguments(argv: list[str] | None) -> argparse.Namespace:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Check the target, API and settings, run the replay, and report the result."""
+    """Check the target, API and settings, run the replay, then save and report the result."""
     arguments = parse_arguments(argv)
     try:
         host = require_local_target(arguments.host)
@@ -123,6 +246,11 @@ def main(argv: list[str] | None = None) -> int:
         print(problem)
         return 2
 
+    now = datetime.now(timezone.utc)
+    run_id = now.strftime("run_%Y%m%dT%H%M%SZ")
+    raw_folder = RAW_FOLDER / run_id
+    raw_folder.mkdir(parents=True, exist_ok=True)
+
     print("Traffic is simulated. StatsBomb provides match events, not platform traffic.")
     print(
         f"Replay: {len(plan.targets)} seconds, {plan.base_users} base users, "
@@ -130,16 +258,20 @@ def main(argv: list[str] | None = None) -> int:
         flush=True,
     )
 
-    TRACE_FOLDER.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    trace_path = TRACE_FOLDER / f"user_trace_{stamp}.json"
+    with CounterSampler(host) as sampler:
+        locust_code = run_locust(host, plan, raw_folder / "trace.json", raw_folder / "requests.jsonl")
 
-    locust_code = run_locust(host, plan, trace_path)
-    followed = report_trace(trace_path)
+    try:
+        result = save_result(run_id, now.isoformat(timespec="seconds"), host, plan, raw_folder, sampler.samples)
+    except (FileNotFoundError, ValueError) as error:
+        print(f"The run finished but its result could not be built: {error}")
+        return 1
+
+    print_result(result)
     if locust_code != 0:
-        print(f"Locust exited with code {locust_code}. Code 1 means some requests failed; see the summary above.")
+        print(f"Locust exited with code {locust_code}. Code 1 means some requests failed.")
         return locust_code
-    return 0 if followed else 1
+    return 0 if result.follows_timeline else 1
 
 
 if __name__ == "__main__":

@@ -13,6 +13,22 @@ class HealthOut(BaseModel):
     status: Literal["ok"]
 
 
+# ===== Server metrics =====
+class CacheMetricsOut(BaseModel):
+    """Cache counters. None means not measured, because no cache is running."""
+
+    enabled: bool
+    hits: int | None
+    misses: int | None
+
+
+class MetricsOut(BaseModel):
+    """Running totals since the API process started."""
+
+    db_queries_total: int
+    cache: CacheMetricsOut
+
+
 # ===== Match =====
 class MatchOut(BaseModel):
     """One match, including where its data came from."""

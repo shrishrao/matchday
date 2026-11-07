@@ -3,7 +3,7 @@
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
-from app.timeline import TrafficProfile, build_timeline, load_profile, load_sample
+from app.timeline import TrafficProfile, build_timeline, fingerprint, load_profile, load_sample
 
 DEFAULT_BASE_USERS = 5
 MAX_BASE_USERS = 500
@@ -15,6 +15,7 @@ TRACE_REQUIRED_SHARE = 0.9
 REPLAY_SECONDS_VARIABLE = "MATCHDAY_REPLAY_SECONDS"
 BASE_USERS_VARIABLE = "MATCHDAY_BASE_USERS"
 TRACE_PATH_VARIABLE = "MATCHDAY_TRACE_PATH"
+REQUESTS_PATH_VARIABLE = "MATCHDAY_REQUESTS_PATH"
 
 
 # ===== Plan =====
@@ -27,6 +28,7 @@ class ReplayPlan:
     targets: tuple[int, ...]
     phases: tuple[str, ...]
     moments: tuple[tuple[float, str], ...]
+    timeline_fingerprint: str
 
     @property
     def peak_users(self) -> int:
@@ -71,6 +73,7 @@ def build_plan(replay_seconds: int | None = None, base_users: int = DEFAULT_BASE
         targets=tuple(users_for(point["multiplier"], base_users) for point in timeline["points"]),
         phases=tuple(point["phase"] for point in timeline["points"]),
         moments=tuple((moment["replay_second"], moment["description"]) for moment in timeline["moments"]),
+        timeline_fingerprint=fingerprint(timeline),
     )
 
 

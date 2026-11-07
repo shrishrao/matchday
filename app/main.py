@@ -11,7 +11,8 @@ from fastapi.responses import JSONResponse
 from app import queries
 from app.config import Settings
 from app.db import create_pool, get_connection
-from app.schemas import FeedOut, HealthOut, MatchOut, MatchStatsOut
+from app.metrics import COUNTERS
+from app.schemas import FeedOut, HealthOut, MatchOut, MatchStatsOut, MetricsOut
 
 # ===== Input limits =====
 MAX_BIGINT = 2**63 - 1
@@ -69,6 +70,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         """Report that the app is running and the database answers."""
         queries.ping(connection)
         return {"status": "ok"}
+
+    @app.get("/internal/metrics", response_model=MetricsOut)
+    def read_metrics() -> dict:
+        """Report server counters for replays and the dashboard. Uses no database connection.
+
+        This is safe here because the API only listens on 127.0.0.1. A public deployment
+        would need to protect it.
+        """
+        return COUNTERS.snapshot()
 
     @app.get("/matches/{match_id}", response_model=MatchOut)
     def read_match(match_id: MatchId, connection: Connection) -> dict:
