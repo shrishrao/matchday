@@ -1,0 +1,78 @@
+{
+  "created_at": "2026-11-07T20:05:23+00:00",
+  "criteria": {
+    "feed_p95_ms_at_least": 500.0,
+    "fixed_before_tuning": true,
+    "or_error_rate_at_least": 0.01,
+    "repeats_required": 3
+  },
+  "disclaimer": "Traffic is simulated. Short replays used to choose a load level; measured on one machine.",
+  "lowest_degraded_base_users": 10,
+  "replay_seconds": 30,
+  "runs": [
+    {
+      "base_users": 5,
+      "degraded": false,
+      "error_rate": 0.0,
+      "feed_p95_ms": 102.7,
+      "overall_p95_ms": 1387.8,
+      "peak_users": 40,
+      "pool_waiting_max": 10,
+      "reasons": [],
+      "recovery_seconds": 0.0,
+      "request_rate_per_second": 13.73,
+      "requests": 412,
+      "run_id": "run_20261107T200216Z"
+    },
+    {
+      "base_users": 10,
+      "degraded": true,
+      "error_rate": 0.0,
+      "feed_p95_ms": 579.7,
+      "overall_p95_ms": 2006.9,
+      "peak_users": 80,
+      "pool_waiting_max": 21,
+      "reasons": [
+        "feed p95 579.7 ms >= 500 ms"
+      ],
+      "recovery_seconds": 0.1,
+      "request_rate_per_second": 25.57,
+      "requests": 767,
+      "run_id": "run_20261107T200300Z"
+    },
+    {
+      "base_users": 15,
+      "degraded": true,
+      "error_rate": 0.2625,
+      "feed_p95_ms": 10089.7,
+      "overall_p95_ms": 10091.7,
+      "peak_users": 120,
+      "pool_waiting_max": 74,
+      "reasons": [
+        "feed p95 10089.7 ms >= 500 ms",
+        "error rate 26.25% >= 1%"
+      ],
+      "recovery_seconds": 0.0,
+      "request_rate_per_second": 18.03,
+      "requests": 541,
+      "run_id": "run_20261107T200345Z"
+    },
+    {
+      "base_users": 20,
+      "degraded": true,
+      "error_rate": 0.6121,
+      "feed_p95_ms": 10112.9,
+      "overall_p95_ms": 10112.9,
+      "peak_users": 160,
+      "pool_waiting_max": 120,
+      "reasons": [
+        "feed p95 10112.9 ms >= 500 ms",
+        "error rate 61.21% >= 1%"
+      ],
+      "recovery_seconds": 7.0,
+      "request_rate_per_second": 17.1,
+      "requests": 513,
+      "run_id": "run_20261107T200434Z"
+    }
+  ]
+}

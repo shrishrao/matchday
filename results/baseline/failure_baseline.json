@@ -1,0 +1,126 @@
+{
+  "created_at": "2026-11-07T20:27:13+00:00",
+  "criteria": {
+    "feed_p95_ms_at_least": 500.0,
+    "fixed_before_tuning": true,
+    "or_error_rate_at_least": 0.01,
+    "repeats_required": 3
+  },
+  "disclaimer": "Traffic is simulated. StatsBomb provides match events, not platform traffic. Measured on one machine, with the load generator on the same computer.",
+  "environment": {
+    "git": {
+      "commit": "9fb5adc",
+      "uncommitted_changes": true
+    },
+    "load_generator_on_same_machine": true,
+    "locust": "2.47.0",
+    "logical_cpus": 16,
+    "os": "Windows-11-10.0.26200-SP0",
+    "python": "3.13.7"
+  },
+  "runs": [
+    {
+      "base_users": 15,
+      "degraded": true,
+      "error_rate": 0.1115,
+      "feed_p95_ms": 10011.0,
+      "overall_p95_ms": 10008.7,
+      "peak_users": 120,
+      "pool_waiting_max": 84,
+      "reasons": [
+        "feed p95 10011.0 ms >= 500 ms",
+        "error rate 11.15% >= 1%"
+      ],
+      "recovery_seconds": 0.0,
+      "request_rate_per_second": 18.72,
+      "requests": 3389,
+      "run_id": "run_20261107T201743Z"
+    },
+    {
+      "base_users": 15,
+      "degraded": true,
+      "error_rate": 0.0809,
+      "feed_p95_ms": 10001.9,
+      "overall_p95_ms": 10003.3,
+      "peak_users": 120,
+      "pool_waiting_max": 68,
+      "reasons": [
+        "feed p95 10001.9 ms >= 500 ms",
+        "error rate 8.09% >= 1%"
+      ],
+      "recovery_seconds": 0.0,
+      "request_rate_per_second": 22.4,
+      "requests": 4054,
+      "run_id": "run_20261107T202056Z"
+    },
+    {
+      "base_users": 15,
+      "degraded": true,
+      "error_rate": 0.1435,
+      "feed_p95_ms": 10032.6,
+      "overall_p95_ms": 10033.1,
+      "peak_users": 120,
+      "pool_waiting_max": 67,
+      "reasons": [
+        "feed p95 10032.6 ms >= 500 ms",
+        "error rate 14.35% >= 1%"
+      ],
+      "recovery_seconds": 0.0,
+      "request_rate_per_second": 17.35,
+      "requests": 3123,
+      "run_id": "run_20261107T202410Z"
+    }
+  ],
+  "settings": {
+    "base_users": 15,
+    "peak_users": 120,
+    "protections": {
+      "cache": false,
+      "load_shedding": false,
+      "rate_limit": false,
+      "stampede_lock": false
+    },
+    "replay_seconds": 180,
+    "timeline_fingerprint": "2ada46e3ea75793636f1add8dea6b8ca4b06bb0429ea11572f12a4d62daef733"
+  },
+  "summary": {
+    "degraded_runs": 3,
+    "error_rate": {
+      "max": 0.1435,
+      "mean": 0.112,
+      "min": 0.0809,
+      "runs": 3,
+      "stdev": 0.0313
+    },
+    "feed_p95_ms": {
+      "max": 10032.6,
+      "mean": 10015.1667,
+      "min": 10001.9,
+      "runs": 3,
+      "stdev": 15.7684
+    },
+    "pool_waiting_max": {
+      "max": 84,
+      "mean": 73.0,
+      "min": 67,
+      "runs": 3,
+      "stdev": 9.5394
+    },
+    "recovery_seconds": {
+      "max": 0.0,
+      "mean": 0.0,
+      "min": 0.0,
+      "runs": 3,
+      "stdev": 0.0
+    },
+    "repeatable": true,
+    "request_rate_per_second": {
+      "max": 22.4,
+      "mean": 19.49,
+      "min": 17.35,
+      "runs": 3,
+      "stdev": 2.6116
+    },
+    "runs": 3
+  }
+}

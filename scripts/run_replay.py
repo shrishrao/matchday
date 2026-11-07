@@ -39,21 +39,25 @@ RUNS_FOLDER = PROJECT_ROOT / "results" / "runs"
 DEFAULT_HOST = "http://127.0.0.1:8000"
 CHECK_TIMEOUT_SECONDS = 5
 SAMPLE_EVERY_SECONDS = 0.5
+# Longer than the fans' 10-second request timeout, so in-flight requests finish or fail visibly.
+STOP_TIMEOUT_SECONDS = 12
+RECOVERY_LIMIT_SECONDS = 180
+RECOVERY_CHECK_TIMEOUT_SECONDS = 2
 PROTECTIONS = {"cache": False, "stampede_lock": False, "rate_limit": False, "load_shedding": False}
 REQUEST_MIX = {"/matches/[id]/feed": 7, "/matches/[id]": 2, "/matches/[id]/stats": 1}
 
 
 # ===== HTTP helpers =====
-def open_url(url: str):
+def open_url(url: str, timeout: float = CHECK_TIMEOUT_SECONDS):
     """Open a URL without any proxy, so local requests stay local."""
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-    return opener.open(url, timeout=CHECK_TIMEOUT_SECONDS)
+    return opener.open(url, timeout=timeout)
 
 
-def http_status(url: str) -> int | None:
-    """Return a URL's HTTP status, or None if nothing answered."""
+def http_status(url: str, timeout: float = CHECK_TIMEOUT_SECONDS) -> int | None:
+    """Return a URL's HTTP status, or None if nothing answered in time."""
     try:
-        with open_url(url) as response:
+        with open_url(url, timeout) as response:
             return response.status
     except urllib.error.HTTPError as error:
         return error.code
@@ -68,6 +72,17 @@ def read_server_metrics(host: str) -> dict | None:
             return json.loads(response.read())
     except (urllib.error.URLError, OSError, ValueError):
         return None
+
+
+# ===== Recovery =====
+def wait_until_healthy(host: str, limit_seconds: float = RECOVERY_LIMIT_SECONDS) -> float | None:
+    """Return seconds until /health answers 200 quickly, or None if it did not within the limit."""
+    started = time.monotonic()
+    while time.monotonic() - started < limit_seconds:
+        if http_status(f"{host}/health", RECOVERY_CHECK_TIMEOUT_SECONDS) == 200:
+            return round(time.monotonic() - started, 1)
+        time.sleep(0.5)
+    return None
 
 
 # ===== Pre-flight =====
@@ -138,6 +153,7 @@ def run_locust(host: str, plan: ReplayPlan, trace_path: Path, requests_path: Pat
         "--host", host,
         "--only-summary",
         "--loglevel", "WARNING",
+        "--stop-timeout", str(STOP_TIMEOUT_SECONDS),
     ]
     return subprocess.run(command, cwd=PROJECT_ROOT, env=env, check=False).returncode
 
@@ -171,6 +187,7 @@ def save_result(
     plan: ReplayPlan,
     raw_folder: Path,
     samples: list[dict],
+    recovery_seconds: float | None = None,
 ) -> RunResult:
     """Build the result from the raw files and write it to the runs folder."""
     trace = json.loads((raw_folder / "trace.json").read_text(encoding="utf-8"))
@@ -195,6 +212,10 @@ def save_result(
         samples=samples,
         follows_timeline=summarize_trace(trace)["follows_timeline"],
     )
+    result = result.model_copy(
+        update={"recovery_seconds": recovery_seconds, "recovery_limit_seconds": RECOVERY_LIMIT_SECONDS}
+    )
+    RunResult.model_validate(result.model_dump())
     RUNS_FOLDER.mkdir(parents=True, exist_ok=True)
     (RUNS_FOLDER / f"{run_id}.json").write_text(serialize(result.model_dump()), encoding="utf-8", newline="\n")
     return result
@@ -214,6 +235,16 @@ def print_result(result: RunResult) -> None:
     print(f"  latency: p50 {number(overall.p50_ms, ' ms')}, p95 {number(overall.p95_ms, ' ms')}")
     print(f"  database queries: {number(result.database.queries)} ({number(result.database.queries_per_request)} per request)")
     print(f"  cache hit rate: {number(result.cache.hit_rate)} (cache enabled: {result.cache.enabled})")
+    if result.pool is not None:
+        print(
+            f"  connection pool: up to {result.pool.waiting_max} requests waiting, "
+            f"{result.pool.failed_requests} could not get a connection"
+        )
+    recovery = (
+        f"{result.recovery_seconds} s" if result.recovery_seconds is not None
+        else f"not within {result.recovery_limit_seconds} s"
+    )
+    print(f"  recovery after the replay: {recovery}")
     print(f"  followed the timeline: {result.follows_timeline}")
     print(f"  saved: {RUNS_FOLDER / (result.run_id + '.json')}")
 
@@ -228,6 +259,46 @@ def parse_arguments(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--base-users", type=int, default=DEFAULT_BASE_USERS)
     parser.add_argument("--host", default=DEFAULT_HOST, help="local API address only")
     return parser.parse_args(argv)
+
+
+def new_run_id(now: datetime) -> str:
+    """Return a run ID from the time, adding a suffix if that ID is already taken."""
+    base = now.strftime("run_%Y%m%dT%H%M%SZ")
+    run_id, suffix = base, 1
+    while (RAW_FOLDER / run_id).exists() or (RUNS_FOLDER / f"{run_id}.json").exists():
+        suffix += 1
+        run_id = f"{base}_{suffix}"
+    return run_id
+
+
+def execute_replay(host: str, plan: ReplayPlan) -> tuple[int, RunResult | None]:
+    """Run one checked replay, save its result, and return Locust's exit code and the result."""
+    now = datetime.now(timezone.utc)
+    run_id = new_run_id(now)
+    raw_folder = RAW_FOLDER / run_id
+    raw_folder.mkdir(parents=True)
+
+    print("Traffic is simulated. StatsBomb provides match events, not platform traffic.")
+    print(
+        f"Replay: {len(plan.targets)} seconds, {plan.base_users} base users, "
+        f"peak {plan.peak_users} users, target {host}",
+        flush=True,
+    )
+
+    with CounterSampler(host) as sampler:
+        locust_code = run_locust(host, plan, raw_folder / "trace.json", raw_folder / "requests.jsonl")
+        recovery_seconds = wait_until_healthy(host)
+
+    try:
+        result = save_result(
+            run_id, now.isoformat(timespec="seconds"), host, plan, raw_folder, sampler.samples, recovery_seconds
+        )
+    except (FileNotFoundError, ValueError) as error:
+        print(f"The run finished but its result could not be built: {error}")
+        return locust_code, None
+
+    print_result(result)
+    return locust_code, result
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -246,28 +317,9 @@ def main(argv: list[str] | None = None) -> int:
         print(problem)
         return 2
 
-    now = datetime.now(timezone.utc)
-    run_id = now.strftime("run_%Y%m%dT%H%M%SZ")
-    raw_folder = RAW_FOLDER / run_id
-    raw_folder.mkdir(parents=True, exist_ok=True)
-
-    print("Traffic is simulated. StatsBomb provides match events, not platform traffic.")
-    print(
-        f"Replay: {len(plan.targets)} seconds, {plan.base_users} base users, "
-        f"peak {plan.peak_users} users, target {host}",
-        flush=True,
-    )
-
-    with CounterSampler(host) as sampler:
-        locust_code = run_locust(host, plan, raw_folder / "trace.json", raw_folder / "requests.jsonl")
-
-    try:
-        result = save_result(run_id, now.isoformat(timespec="seconds"), host, plan, raw_folder, sampler.samples)
-    except (FileNotFoundError, ValueError) as error:
-        print(f"The run finished but its result could not be built: {error}")
+    locust_code, result = execute_replay(host, plan)
+    if result is None:
         return 1
-
-    print_result(result)
     if locust_code != 0:
         print(f"Locust exited with code {locust_code}. Code 1 means some requests failed.")
         return locust_code

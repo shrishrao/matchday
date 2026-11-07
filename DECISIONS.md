@@ -156,5 +156,36 @@ Each entry: decision, alternatives considered, and tradeoffs.
 - **Decision:** document it and test the real guarantee: clean 503s, then recovery within seconds. Not fixed now.
 - **Why:** it only happens after a database restart. Fixing it means customising the pool, which is outside Stage 5.
 
+## D33: What "visibly degraded" means, fixed before tuning (Stage 6)
+- **Decision:** a run counts as degraded if the feed's p95 is at least 500 ms, or at least 1% of all requests fail. These thresholds were written down before any tuning run.
+- **Why the feed:** `/feed` is the fast, important path (7 ms median when unstressed). Overall p95 is not used, because the deliberately slow `/stats` already pushes it near 1 s at light load. Fans feeling the slow query delay the fast one is the failure the protections must fix.
+- **Why fixed in advance:** choosing thresholds after seeing results would make it easy to call any run a failure.
+- **Repeatable means:** 3 full 180-second replays at the chosen setting, all degraded.
+
+## D34: Record requests that are still running when users stop (Stage 6)
+- **Decision:** run Locust with `--stop-timeout 12`, longer than the fans' 10-second request timeout.
+- **Why:** with the default of 0, Locust kills users mid-request when the load drops or the replay ends, and those requests are never recorded. They are the slowest ones, so leaving them out made overloaded runs look healthier. One early 10-user sweep showed 0 failures while the API was frozen.
+- **Tradeoff:** load falls a little more slowly after a spike, because stopping users finish their current request first.
+
+## D35: Keep `/internal/metrics` off the route thread pool (Stage 6)
+- **Decision:** make the metrics endpoint `async`, so it runs on the event loop.
+- **Why:** under overload, all 40 route threads were blocked waiting for database connections, so a normal `def` metrics endpoint queued too and readings disappeared exactly when they mattered.
+- **Tradeoff:** the endpoint must never do blocking work. It only reads memory.
+
+## D36: Measure recovery time, and wait for recovery between runs (Stage 6)
+- **Decision:** after each replay, time how long `/health` takes to answer 200 within 2 seconds, giving up after 180 seconds. The sweep and the confirmation wait for recovery before each run.
+- **Why:** an overloaded API keeps working through requests that fans have already given up on, so it stays slow after the traffic stops. Without waiting, one run's leftover work would spoil the next, which happened in the first sweep. Recovery time is also a useful result for comparing protections.
+
+## D37: Failure baseline at 15 base users, peaking at 120 (Stage 6)
+- **Decision:** the unprotected baseline uses 15 base users.
+- **Evidence (30-second sweep, one run per level):** 5 users stayed healthy (feed p95 103 ms). 10 users only just crossed the threshold (feed p95 580 ms, 0% errors). 15 users degraded badly (feed p95 10,090 ms, 26% errors). 20 users degraded worse (61% errors).
+- **Why not 10:** it was so close to the threshold that it might not degrade every time. At 15 the failure is obvious, and the request rate falls as the load rises (25.6 per second at 10 users, 18.0 at 15).
+- **Tradeoff:** the numbers belong to this machine. Another computer needs its own sweep.
+
+## D38: "Followed the timeline" allows a bounded slowdown after spikes (Stage 6)
+- **Decision:** a second is on target if the user count reached its target, and was no higher than the largest target of the previous 13 seconds. Falling short is never allowed.
+- **Why:** after D34, fans that have been told to stop finish their current request, which can take up to 12 seconds under overload. They start no new requests. The old rule marked these seconds off target, so all three first confirmation runs failed the check (77–84% on target). Nearly every miss was users above target after a spike, and almost none were users below target.
+- **Honesty note:** those three runs were deleted and rerun with the corrected code, rather than recalculating their saved files.
+
 ## D26: Short replays shrink spike lengths too (Stage 4)
 - **Why:** without this, spike lengths meant for 180 seconds would overlap across a 30-second replay and hold it near the cap. The full replay still matches the committed timeline.

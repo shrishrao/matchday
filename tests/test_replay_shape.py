@@ -143,6 +143,34 @@ def test_trace_not_following_the_plan_fails():
     assert summary["largest_gap"] == 35
 
 
+def test_users_finishing_their_last_request_after_a_spike_are_allowed():
+    # The target drops from 40 to 5, but stopping fans keep the count at 40 for a few seconds.
+    targets = [5, 40, 40, 5, 5, 5, 5, 5]
+    actuals = [0, 5, 40, 40, 40, 40, 5, 5]
+    summary = summarize_trace(rows(targets, actuals), grace_seconds=13)
+    assert summary["follows_timeline"] is True
+    assert summary["above_allowed_seconds"] == 0
+
+
+def test_users_staying_longer_than_the_grace_period_fail():
+    targets = [5, 40] + [5] * 10
+    actuals = [0, 5] + [40] * 10
+    summary = summarize_trace(rows(targets, actuals), grace_seconds=2)
+    assert summary["follows_timeline"] is False
+    assert summary["above_allowed_seconds"] > 0
+
+
+def test_more_users_than_any_recent_target_fail():
+    summary = summarize_trace(rows([5, 5, 5, 5], [0, 5, 30, 30]), grace_seconds=13)
+    assert summary["follows_timeline"] is False
+
+
+def test_too_few_users_always_fail_even_during_the_grace_period():
+    summary = summarize_trace(rows([40, 40, 40, 40], [0, 10, 10, 10]), grace_seconds=13)
+    assert summary["below_target_seconds"] == 3
+    assert summary["follows_timeline"] is False
+
+
 @pytest.mark.parametrize("trace", [[], [{"second": 0, "target": 5, "actual": 0}]])
 def test_trace_too_short_to_compare_fails(trace):
     assert summarize_trace(trace)["follows_timeline"] is False
@@ -191,6 +219,26 @@ def test_run_command_explains_when_the_match_is_missing(monkeypatch, capsys):
 
 def test_http_status_returns_none_when_nothing_answers():
     assert run_replay.http_status("http://127.0.0.1:1/health") is None
+
+
+def test_recovery_wait_gives_up_at_the_limit(monkeypatch):
+    monkeypatch.setattr(run_replay, "http_status", lambda *_: None)
+    monkeypatch.setattr(run_replay.time, "sleep", lambda _: None)
+    assert run_replay.wait_until_healthy("http://127.0.0.1:1", limit_seconds=0.05) is None
+
+
+def test_recovery_wait_returns_quickly_when_healthy(monkeypatch):
+    monkeypatch.setattr(run_replay, "http_status", lambda *_: 200)
+    assert run_replay.wait_until_healthy("http://127.0.0.1:1") == 0.0
+
+
+def test_stop_timeout_is_longer_than_the_request_timeout():
+    from loadgen.schedule import STOP_GRACE_SECONDS
+
+    source = (run_replay.LOCUSTFILE).read_text(encoding="utf-8")
+    assert "REQUEST_TIMEOUT_SECONDS = 10" in source
+    assert run_replay.STOP_TIMEOUT_SECONDS > 10
+    assert STOP_GRACE_SECONDS > run_replay.STOP_TIMEOUT_SECONDS
 
 
 # ===== Real replay =====

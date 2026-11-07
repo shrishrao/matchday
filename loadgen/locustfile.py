@@ -18,6 +18,7 @@ from loadgen.schedule import REQUESTS_PATH_VARIABLE, TRACE_PATH_VARIABLE, plan_f
 
 PLAN = plan_from_environment(os.environ)
 REQUEST_TIMEOUT_SECONDS = 10
+# Locust's --stop-timeout must be longer than this, so requests in flight when users stop are recorded.
 PROGRESS_EVERY_SECONDS = 15
 REFUSED_EXIT_CODE = 2
 

@@ -22,11 +22,21 @@ class CacheMetricsOut(BaseModel):
     misses: int | None
 
 
+class PoolMetricsOut(BaseModel):
+    """The connection pool right now, plus failed connection requests since startup."""
+
+    size: int
+    available: int
+    waiting: int
+    failed_requests: int
+
+
 class MetricsOut(BaseModel):
     """Running totals since the API process started."""
 
     db_queries_total: int
     cache: CacheMetricsOut
+    pool: PoolMetricsOut
 
 
 # ===== Match =====

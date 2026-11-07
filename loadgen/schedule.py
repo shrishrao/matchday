@@ -11,6 +11,9 @@ MIN_REPLAY_SECONDS = 10
 MAX_REPLAY_SECONDS = 3_600
 SHORT_REPLAY_SECONDS = 30
 TRACE_REQUIRED_SHARE = 0.9
+# Stopping fans finish their current request first (Locust --stop-timeout 12), so after a
+# spike the user count may stay above the new target for up to this long.
+STOP_GRACE_SECONDS = 13
 
 REPLAY_SECONDS_VARIABLE = "MATCHDAY_REPLAY_SECONDS"
 BASE_USERS_VARIABLE = "MATCHDAY_BASE_USERS"
@@ -96,17 +99,35 @@ def plan_from_environment(env: Mapping[str, str]) -> ReplayPlan:
 
 
 # ===== Trace comparison =====
-def summarize_trace(rows: Sequence[Mapping[str, int]]) -> dict:
-    """Compare asked-for and actual users. Actual users are read a second later, to allow for start-up."""
-    pairs = [(row["target"], following["actual"]) for row, following in zip(rows, rows[1:])]
-    if not pairs:
-        return {"seconds": 0, "share_on_target": 0.0, "largest_gap": 0, "peak_actual": 0, "follows_timeline": False}
-    on_target = sum(abs(actual - target) <= max(1, target // 10) for target, actual in pairs)
-    share = on_target / len(pairs)
+def summarize_trace(rows: Sequence[Mapping[str, int]], grace_seconds: int = STOP_GRACE_SECONDS) -> dict:
+    """Compare asked-for and actual users, read one second later to allow for start-up.
+
+    A second is on target if the actual users reached the target, and were no higher than the
+    largest target of the last grace_seconds (fans still finishing their last request).
+    """
+    if len(rows) < 2:
+        return {
+            "seconds": 0, "share_on_target": 0.0, "below_target_seconds": 0, "above_allowed_seconds": 0,
+            "largest_gap": 0, "peak_actual": 0, "follows_timeline": False,
+        }
+
+    below = above = 0
+    for index, (row, following) in enumerate(zip(rows, rows[1:])):
+        target, actual = row["target"], following["actual"]
+        allowed = max(r["target"] for r in rows[max(0, index - grace_seconds): index + 1])
+        if actual < target - max(1, target // 10):
+            below += 1
+        elif actual > allowed + max(1, allowed // 10):
+            above += 1
+
+    seconds = len(rows) - 1
+    share = (seconds - below - above) / seconds
     return {
-        "seconds": len(pairs),
+        "seconds": seconds,
         "share_on_target": round(share, 3),
-        "largest_gap": max(abs(actual - target) for target, actual in pairs),
-        "peak_actual": max(actual for _, actual in pairs),
+        "below_target_seconds": below,
+        "above_allowed_seconds": above,
+        "largest_gap": max(abs(f["actual"] - r["target"]) for r, f in zip(rows, rows[1:])),
+        "peak_actual": max(f["actual"] for f in rows[1:]),
         "follows_timeline": share >= TRACE_REQUIRED_SHARE,
     }

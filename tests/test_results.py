@@ -167,6 +167,31 @@ def test_missing_counter_readings_are_not_filled_in():
     assert all(row.db_queries is None for row in run.seconds)
 
 
+def pool_sample(time, waiting, failed):
+    """Build a counter reading that includes pool data."""
+    return {**sample(time, 0), "pool": {"size": 10, "available": 0, "waiting": waiting, "failed_requests": failed}}
+
+
+def test_pool_pressure_is_summarized_for_the_run_and_each_second():
+    samples = [pool_sample(START, 0, 2), pool_sample(START + 0.5, 6, 2), pool_sample(START + 1.5, 3, 5)]
+    run = result(samples=samples)
+    assert run.pool.waiting_max == 6
+    assert run.pool.failed_requests == 3
+    assert [row.pool_waiting_max for row in run.seconds] == [6, 3, None]
+
+
+def test_runs_without_pool_data_report_none():
+    run = result(samples=[sample(START, 0), sample(START + 3, 1)])
+    assert run.pool is None
+
+
+def test_stage_five_example_still_reads():
+    from app.config import PROJECT_ROOT
+
+    example = PROJECT_ROOT / "results" / "examples" / "stage5_full_replay_5_base_users.json"
+    assert RunResult.model_validate_json(example.read_text(encoding="utf-8")).pool is None
+
+
 def test_result_needs_a_trace():
     with pytest.raises(ValueError, match="trace"):
         build_result(

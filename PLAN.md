@@ -21,7 +21,7 @@ Priority: backend depth first, with a clean dashboard.
 | 3 | Match timeline: one StatsBomb match → deterministic traffic profile | Complete (committed) |
 | 4 | Load generator: Locust replay, local-only target check | Complete (committed) |
 | 5 | Metrics: p50/p95, request rate, error rate, DB query count, cache hit rate → JSON | Complete (committed) |
-| 6 | Failure baseline: tune until the unprotected system degrades repeatably | Not started |
+| 6 | Failure baseline: tune until the unprotected system degrades repeatably | Complete (committed) |
 | 7 | Cache: Redis cache behind a toggle, invalidation tests | Not started |
 | 8 | Stampede protection: refill lock, expiry, failed refresh | Not started |
 | 9 | Rate limiting: configurable, correct HTTP 429 | Not started |

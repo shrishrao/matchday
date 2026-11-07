@@ -46,6 +46,14 @@ class SecondRow(StrictModel):
     p50_ms: float | None
     p95_ms: float | None
     db_queries: int | None
+    pool_waiting_max: int | None = None
+
+
+class PoolSummary(StrictModel):
+    """Connection pool pressure during the run. None means not measured."""
+
+    waiting_max: int | None
+    failed_requests: int | None
 
 
 class DatabaseSummary(StrictModel):
@@ -79,6 +87,9 @@ class RunResult(StrictModel):
     endpoints: dict[str, LatencySummary]
     database: DatabaseSummary
     cache: CacheSummary
+    pool: PoolSummary | None = None
+    recovery_seconds: float | None = None
+    recovery_limit_seconds: int | None = None
     follows_timeline: bool
     seconds: list[SecondRow]
 
@@ -120,6 +131,20 @@ def counter_delta(samples: Sequence[Mapping], start: float, end: float) -> int |
     return None if before is None or after is None else after - before
 
 
+def pool_readings(samples: Sequence[Mapping], key: str, start: float, end: float) -> list[int]:
+    """Return a pool value from every reading taken inside a time window."""
+    return [s["pool"][key] for s in samples if "pool" in s and start <= s["time"] < end]
+
+
+def summarize_pool(samples: Sequence[Mapping]) -> PoolSummary | None:
+    """Summarize pool pressure, or return None if the readings have no pool data."""
+    readings = [s for s in samples if "pool" in s]
+    if not readings:
+        return None
+    failed = readings[-1]["pool"]["failed_requests"] - readings[0]["pool"]["failed_requests"]
+    return PoolSummary(waiting_max=max(s["pool"]["waiting"] for s in readings), failed_requests=failed)
+
+
 def tick_windows(trace: Sequence[Mapping]) -> list[tuple[float, float]]:
     """Return each tick's time window, from its own time to the next tick's.
 
@@ -137,6 +162,7 @@ def bucket_seconds(
     rows = []
     for point, (start, end) in zip(trace, tick_windows(trace)):
         summary = summarize_requests([r for r in records if start <= r["end_time"] < end])
+        waiting = pool_readings(samples, "waiting", start, end)
         rows.append(
             SecondRow(
                 second=point["second"],
@@ -147,6 +173,7 @@ def bucket_seconds(
                 p50_ms=summary.p50_ms,
                 p95_ms=summary.p95_ms,
                 db_queries=counter_delta(samples, start, end),
+                pool_waiting_max=max(waiting) if waiting else None,
             )
         )
     return rows
@@ -196,6 +223,7 @@ def build_result(
         endpoints=endpoints,
         database=DatabaseSummary(queries=queries, queries_per_request=per_request),
         cache=CacheSummary(enabled=cache["enabled"], hits=cache["hits"], misses=cache["misses"], hit_rate=hit_rate),
+        pool=summarize_pool(samples),
         follows_timeline=follows_timeline,
         seconds=bucket_seconds(records, trace, samples),
     )

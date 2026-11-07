@@ -133,6 +133,45 @@ def test_metrics_count_each_database_query(client, path, expected):
     assert queries_after(client, path) == expected
 
 
+def test_metrics_report_pool_pressure(client):
+    pool = client.get("/internal/metrics").json()["pool"]
+    assert set(pool) == {"size", "available", "waiting", "failed_requests"}
+    assert pool["size"] >= 1
+    assert pool["waiting"] >= 0
+
+
+def test_metrics_count_requests_that_could_not_get_a_connection(test_settings):
+    # A one-connection pool that is held busy makes the next request time out waiting.
+    tight = test_settings.model_copy(update={"pool_min_size": 1, "pool_max_size": 1, "pool_timeout_seconds": 0.2})
+    with TestClient(create_app(tight)) as tight_client:
+        pool = tight_client.app.state.pool
+        with pool.connection():
+            assert tight_client.get("/health").status_code == 503
+        failed = tight_client.get("/internal/metrics").json()["pool"]["failed_requests"]
+    assert failed == 1
+
+
+def test_metrics_answer_while_every_route_thread_is_busy(test_settings):
+    # Hold the only pooled connection so routes queue, then read metrics: it must not queue.
+    import concurrent.futures
+    import time
+
+    tight = test_settings.model_copy(update={"pool_min_size": 1, "pool_max_size": 1, "pool_timeout_seconds": 3})
+    with TestClient(create_app(tight)) as tight_client:
+        with tight_client.app.state.pool.connection():
+            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+                waiting = [pool.submit(tight_client.get, "/health") for _ in range(4)]
+                time.sleep(0.5)
+                started = time.monotonic()
+                metrics = tight_client.get("/internal/metrics")
+                elapsed = time.monotonic() - started
+                waiting_now = metrics.json()["pool"]["waiting"]
+        concurrent.futures.wait(waiting)
+    assert metrics.status_code == 200
+    assert elapsed < 1.0
+    assert waiting_now >= 1
+
+
 def test_metrics_report_that_cache_is_not_measured_yet(client):
     cache = client.get("/internal/metrics").json()["cache"]
     assert cache == {"enabled": False, "hits": None, "misses": None}

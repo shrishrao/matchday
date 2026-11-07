@@ -72,13 +72,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"status": "ok"}
 
     @app.get("/internal/metrics", response_model=MetricsOut)
-    def read_metrics() -> dict:
-        """Report server counters for replays and the dashboard. Uses no database connection.
+    async def read_metrics(request: Request) -> dict:
+        """Report server counters and pool pressure. Uses no database connection.
 
+        It is async so that it runs on the event loop rather than the route thread pool,
+        and stays readable when every route thread is busy. It only reads memory.
         This is safe here because the API only listens on 127.0.0.1. A public deployment
         would need to protect it.
         """
-        return COUNTERS.snapshot()
+        stats = request.app.state.pool.get_stats()
+        return {
+            **COUNTERS.snapshot(),
+            "pool": {
+                "size": stats.get("pool_size", 0),
+                "available": stats.get("pool_available", 0),
+                "waiting": stats.get("requests_waiting", 0),
+                "failed_requests": stats.get("requests_errors", 0),
+            },
+        }
 
     @app.get("/matches/{match_id}", response_model=MatchOut)
     def read_match(match_id: MatchId, connection: Connection) -> dict:
