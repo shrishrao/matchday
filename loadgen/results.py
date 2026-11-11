@@ -64,12 +64,13 @@ class DatabaseSummary(StrictModel):
 
 
 class CacheSummary(StrictModel):
-    """Cache use. None means not measured, because no cache was running."""
+    """Cache use during the run. None means not measured, because the cache was off."""
 
     enabled: bool
     hits: int | None
     misses: int | None
     hit_rate: float | None
+    errors: int | None = None
 
 
 class RunResult(StrictModel):
@@ -145,6 +146,26 @@ def summarize_pool(samples: Sequence[Mapping]) -> PoolSummary | None:
     return PoolSummary(waiting_max=max(s["pool"]["waiting"] for s in readings), failed_requests=failed)
 
 
+def summarize_cache(samples: Sequence[Mapping]) -> CacheSummary:
+    """Return cache use during the run, from the first and last counter readings.
+
+    The API's counters are totals since it started, so the run's share is last minus first.
+    The hit rate counts only lookups that Redis answered; Redis failures are reported separately.
+    """
+    enabled = bool(samples) and samples[-1]["cache"]["enabled"]
+    if not enabled or len(samples) < 2:
+        return CacheSummary(enabled=enabled, hits=None, misses=None, hit_rate=None)
+
+    def change(key: str) -> int | None:
+        first, last = samples[0]["cache"].get(key), samples[-1]["cache"].get(key)
+        return None if first is None or last is None else last - first
+
+    hits, misses = change("hits"), change("misses")
+    looked_up = (hits or 0) + (misses or 0)
+    hit_rate = round(hits / looked_up, 4) if hits is not None and looked_up else None
+    return CacheSummary(enabled=True, hits=hits, misses=misses, hit_rate=hit_rate, errors=change("errors"))
+
+
 def tick_windows(trace: Sequence[Mapping]) -> list[tuple[float, float]]:
     """Return each tick's time window, from its own time to the next tick's.
 
@@ -206,9 +227,6 @@ def build_result(
         queries = samples[-1]["db_queries_total"] - samples[0]["db_queries_total"]
     per_request = round(queries / overall.requests, 3) if queries is not None and overall.requests else None
 
-    cache = samples[-1]["cache"] if samples else {"enabled": False, "hits": None, "misses": None}
-    looked_up = (cache["hits"] or 0) + (cache["misses"] or 0)
-    hit_rate = round(cache["hits"] / looked_up, 4) if cache["enabled"] and looked_up else None
 
     return RunResult(
         schema_version=SCHEMA_VERSION,
@@ -222,7 +240,7 @@ def build_result(
         overall=overall,
         endpoints=endpoints,
         database=DatabaseSummary(queries=queries, queries_per_request=per_request),
-        cache=CacheSummary(enabled=cache["enabled"], hits=cache["hits"], misses=cache["misses"], hit_rate=hit_rate),
+        cache=summarize_cache(samples),
         pool=summarize_pool(samples),
         follows_timeline=follows_timeline,
         seconds=bucket_seconds(records, trace, samples),

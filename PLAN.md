@@ -22,7 +22,7 @@ Priority: backend depth first, with a clean dashboard.
 | 4 | Load generator: Locust replay, local-only target check | Complete (committed) |
 | 5 | Metrics: p50/p95, request rate, error rate, DB query count, cache hit rate → JSON | Complete (committed) |
 | 6 | Failure baseline: tune until the unprotected system degrades repeatably | Complete (committed) |
-| 7 | Cache: Redis cache behind a toggle, invalidation tests | Not started |
+| 7 | Cache: Redis cache behind a toggle, invalidation tests | Complete (committed) |
 | 8 | Stampede protection: refill lock, expiry, failed refresh | Not started |
 | 9 | Rate limiting: configurable, correct HTTP 429 | Not started |
 | 10 | Load shedding: critical vs non-critical endpoints | Not started |

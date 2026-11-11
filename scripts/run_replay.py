@@ -43,7 +43,7 @@ SAMPLE_EVERY_SECONDS = 0.5
 STOP_TIMEOUT_SECONDS = 12
 RECOVERY_LIMIT_SECONDS = 180
 RECOVERY_CHECK_TIMEOUT_SECONDS = 2
-PROTECTIONS = {"cache": False, "stampede_lock": False, "rate_limit": False, "load_shedding": False}
+PROTECTION_NAMES = ("cache", "stampede_lock", "rate_limit", "load_shedding")
 REQUEST_MIX = {"/matches/[id]/feed": 7, "/matches/[id]": 2, "/matches/[id]/stats": 1}
 
 
@@ -135,6 +135,12 @@ class CounterSampler:
         self._take()
 
 
+def protections_from(samples: list[dict]) -> dict:
+    """Return the protections the API itself reported. A protection it did not report is None, not False."""
+    reported = samples[0].get("protections", {}) if samples else {}
+    return {name: reported.get(name) for name in PROTECTION_NAMES}
+
+
 # ===== Replay =====
 def run_locust(host: str, plan: ReplayPlan, trace_path: Path, requests_path: Path) -> int:
     """Run Locust to the end of the replay, and return its exit code."""
@@ -203,7 +209,7 @@ def save_result(
             "host": host,
             "match_id": plan.match_id,
             "timeline_fingerprint": plan.timeline_fingerprint,
-            "protections": PROTECTIONS,
+            "protections": protections_from(samples),
             "request_mix": REQUEST_MIX,
         },
         environment=describe_environment(),
@@ -234,7 +240,10 @@ def print_result(result: RunResult) -> None:
     print(f"  request rate: {result.request_rate_per_second} per second")
     print(f"  latency: p50 {number(overall.p50_ms, ' ms')}, p95 {number(overall.p95_ms, ' ms')}")
     print(f"  database queries: {number(result.database.queries)} ({number(result.database.queries_per_request)} per request)")
-    print(f"  cache hit rate: {number(result.cache.hit_rate)} (cache enabled: {result.cache.enabled})")
+    print(
+        f"  cache hit rate: {number(result.cache.hit_rate)} (cache enabled: {result.cache.enabled}, "
+        f"Redis errors: {number(result.cache.errors)})"
+    )
     if result.pool is not None:
         print(
             f"  connection pool: up to {result.pool.waiting_max} requests waiting, "
@@ -284,6 +293,9 @@ def execute_replay(host: str, plan: ReplayPlan) -> tuple[int, RunResult | None]:
         f"peak {plan.peak_users} users, target {host}",
         flush=True,
     )
+    metrics = read_server_metrics(host) or {}
+    active = [name for name, on in metrics.get("protections", {}).items() if on]
+    print(f"Protections reported by the API: {', '.join(active) or 'none'}", flush=True)
 
     with CounterSampler(host) as sampler:
         locust_code = run_locust(host, plan, raw_folder / "trace.json", raw_folder / "requests.jsonl")

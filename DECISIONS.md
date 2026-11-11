@@ -189,3 +189,31 @@ Each entry: decision, alternatives considered, and tradeoffs.
 
 ## D26: Short replays shrink spike lengths too (Stage 4)
 - **Why:** without this, spike lengths meant for 180 seconds would overlap across a 30-second replay and hold it near the cap. The full replay still matches the committed timeline.
+
+## D39: Routes borrow their database connection inside their own thread (Stage 7)
+- **Finding:** in Stage 6, every route got its connection from a FastAPI sync `yield` dependency. FastAPI runs the dependency's setup and its cleanup (which returns the connection) on worker threads from the same 40-thread pool. Under overload, all 40 threads were waiting for a connection, so no thread was free to run the cleanup that would hand one back. Connections stayed stuck until the 5-second pool timeout freed a thread with a 503. This is thread-pool starvation.
+- **Evidence (30-second replays at 15 base users, cache off, alternating):** Stage 6 code had a feed p95 of 10,046 ms and 17.3% / 8.7% errors (133 and 66 failed connection requests). The same load on the fixed code gave a feed p95 of 478 / 383 ms with 0 errors.
+- **Decision:** remove the dependency. Each route borrows and returns its connection in the thread that does the work (`with_connection` in `app/main.py`). A test fails if any route uses a `yield` dependency again.
+- **Why now:** a cache hit must not wait for a connection at all, so the cached routes could not keep the dependency. Fixing only the cached routes would have hidden the starvation fix inside the cache result, giving the cache credit for a separate bug fix.
+- **Consequence:** the Stage 6 baseline described code with this bug. Its files stay unchanged as a record, and the comparisons use a new baseline (D41).
+
+## D40: Cache design (Stage 7)
+- **Pattern:** cache-aside in Redis for `/matches/{id}`, `/feed` and `/stats`, behind `CACHE_ENABLED` (off by default). `/health` and `/internal/metrics` are never cached.
+- **TTLs:** match 5 s, feed 2 s, stats 10 s. The data is a finished match, but the app pretends to be live, so a TTL is the promise "at most N seconds old". The slow stats get the longest TTL.
+- **Keys:** `matchday:v1:match:{id}`, `...:feed:{after|start}:{limit}`, `...:stats`. The `v1` lets a future response-shape change start from an empty cache. The prefix must match `[a-z0-9_-]` segments, because it is used in Redis `SCAN MATCH` patterns, where `*` or `?` would widen what gets deleted.
+- **Invalidation:** TTL expiry, plus `invalidate_match()` and `clear()`. Seeding clears the cache because it replaces the data. Without invalidation, changed data is served stale until the TTL ends, and a test shows this.
+- **Never cached:** 404s and invalid requests. Caching "not found" would let requests for random IDs fill Redis.
+- **Failure:** if Redis fails, the request falls back to Postgres (`X-Cache: UNAVAILABLE`) and the error is counted. redis-py retries 10 times by default, which made each request wait about 10 s with Redis down, so retries are off: one 0.5-second timeout at most. A damaged entry is treated as a miss and overwritten.
+- **Memory:** Redis is capped at 64 MB with `allkeys-lru`. There are 1.44 million possible feed keys per match, so without a cap, varied queries could fill memory.
+- **Known limit:** with Redis down, every request still tries Redis once. A circuit breaker would skip it, but that is outside the four protections.
+
+## D41: New unprotected baseline at 30 base users (Stage 7)
+- **Why:** after D39, the unprotected API no longer collapses at 15 base users. Latency rises but nothing fails.
+- **Sweep (30-second replays, cache off, fixed code, `results/baseline_v2/sweep.json`):** 15 users: feed p95 489 ms (healthy, just). 20: 1,131 ms. 30: 1,632 ms. 40: 3,958 ms. No errors at any level, and the request rate rose from 40 to 66 per second.
+- **Decision:** compare protections at 30 base users (peak 240). It is clearly past the 500 ms threshold. The full replay has calmer stretches than the 30-second one, so a level only just past the threshold might not degrade every time. The criteria (D33) are unchanged.
+- **Repeatability:** the three cache-off runs in the Stage 7 comparison act as this baseline's confirmation.
+
+## D42: How the cache comparison is run (Stage 7)
+- **Decision:** `scripts.compare_cache` starts and stops the API itself, alternates cache off and on (off, on, off, on, off, on), empties the cache before every run, and refuses to start if another API is already on the port.
+- **Why:** starting the API itself guarantees each run uses the setting it claims, and the API's own `/internal/metrics` report confirms it before traffic starts. Alternating spreads any slow drift on this computer evenly over both settings. A cold cache at the start of each run includes the first misses in the result.
+- **Protections in result files** now come from the API's report, not from a constant in the run command. A protection the API does not report is stored as null.

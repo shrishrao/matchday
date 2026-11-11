@@ -1,11 +1,12 @@
 """Tests for the API's routes, input validation and error handling."""
 
+from contextlib import contextmanager
+
 import psycopg
 import pytest
 from fastapi.testclient import TestClient
 from psycopg_pool import PoolTimeout
 
-from app.db import get_connection
 from app.main import MAX_BIGINT, create_app
 from scripts.seed import MATCH_ID, SAMPLE
 from tests.conftest import TEST_REACTIONS
@@ -172,9 +173,12 @@ def test_metrics_answer_while_every_route_thread_is_busy(test_settings):
     assert waiting_now >= 1
 
 
-def test_metrics_report_that_cache_is_not_measured_yet(client):
-    cache = client.get("/internal/metrics").json()["cache"]
-    assert cache == {"enabled": False, "hits": None, "misses": None}
+def test_metrics_report_that_cache_is_not_measured_when_off(client):
+    metrics = client.get("/internal/metrics").json()
+    assert metrics["cache"] == {"enabled": False, "hits": None, "misses": None, "errors": None}
+    assert metrics["protections"] == {
+        "cache": False, "stampede_lock": False, "rate_limit": False, "load_shedding": False
+    }
 
 
 def test_metrics_count_queries_from_concurrent_requests(client):
@@ -238,28 +242,43 @@ def test_full_pool_recovers_within_seconds_when_connections_are_killed(test_sett
     "failure",
     [PoolTimeout("secret pool detail"), psycopg.OperationalError("secret database detail")],
 )
-def test_database_failure_returns_503_without_details(test_settings, failure):
+def test_database_failure_returns_503_without_details(test_settings, failure, monkeypatch):
+    @contextmanager
     def failing_connection():
         raise failure
         yield
 
-    app = create_app(test_settings)
-    app.dependency_overrides[get_connection] = failing_connection
-    with TestClient(app) as failing_client:
+    with TestClient(create_app(test_settings)) as failing_client:
+        monkeypatch.setattr(failing_client.app.state.pool, "connection", failing_connection)
         response = failing_client.get("/health")
     assert response.status_code == 503
     assert response.headers["retry-after"] == "5"
     assert "secret" not in response.text
 
 
-def test_unexpected_error_does_not_expose_details(test_settings):
+def test_unexpected_error_does_not_expose_details(test_settings, monkeypatch):
+    @contextmanager
     def failing_connection():
         raise RuntimeError("secret internal detail")
         yield
 
-    app = create_app(test_settings)
-    app.dependency_overrides[get_connection] = failing_connection
-    with TestClient(app, raise_server_exceptions=False) as failing_client:
+    with TestClient(create_app(test_settings), raise_server_exceptions=False) as failing_client:
+        monkeypatch.setattr(failing_client.app.state.pool, "connection", failing_connection)
         response = failing_client.get("/health")
     assert response.status_code == 500
     assert "secret" not in response.text
+
+
+# ===== Connection borrowing (D39) =====
+def test_no_route_borrows_its_connection_through_a_yield_dependency():
+    # A sync yield dependency needs a second worker thread to return its connection. Under
+    # overload every thread waits for a connection, so none can be returned (Stage 7 finding).
+    import inspect
+
+    from fastapi.routing import APIRoute
+
+    for route in create_app().routes:
+        if isinstance(route, APIRoute):
+            for dependency in route.dependant.dependencies:
+                call = dependency.call
+                assert not (inspect.isgeneratorfunction(call) or inspect.isasyncgenfunction(call)), route.path

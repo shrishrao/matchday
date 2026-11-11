@@ -15,11 +15,21 @@ class HealthOut(BaseModel):
 
 # ===== Server metrics =====
 class CacheMetricsOut(BaseModel):
-    """Cache counters. None means not measured, because no cache is running."""
+    """Cache counters. None means not measured, because the cache is off."""
 
     enabled: bool
     hits: int | None
     misses: int | None
+    errors: int | None
+
+
+class ProtectionsOut(BaseModel):
+    """Which protections this API process is running with."""
+
+    cache: bool
+    stampede_lock: bool
+    rate_limit: bool
+    load_shedding: bool
 
 
 class PoolMetricsOut(BaseModel):
@@ -37,6 +47,7 @@ class MetricsOut(BaseModel):
     db_queries_total: int
     cache: CacheMetricsOut
     pool: PoolMetricsOut
+    protections: ProtectionsOut
 
 
 # ===== Match =====

@@ -1,0 +1,88 @@
+{
+  "created_at": "2026-11-11T03:30:48+00:00",
+  "criteria": {
+    "feed_p95_ms_at_least": 500.0,
+    "fixed_before_tuning": true,
+    "or_error_rate_at_least": 0.01,
+    "repeats_required": 3
+  },
+  "disclaimer": "Traffic is simulated. Short replays used to choose a load level; measured on one machine.",
+  "lowest_degraded_base_users": 20,
+  "replay_seconds": 30,
+  "runs": [
+    {
+      "base_users": 15,
+      "cache_hit_rate": null,
+      "db_queries_per_request": 1.798,
+      "degraded": false,
+      "error_rate": 0.0,
+      "feed_p95_ms": 489.1,
+      "overall_p95_ms": 1150.6,
+      "peak_users": 120,
+      "pool_waiting_max": 30,
+      "reasons": [],
+      "recovery_seconds": 0.0,
+      "request_rate_per_second": 40.27,
+      "requests": 1208,
+      "run_id": "run_20261111T032804Z",
+      "stats_p95_ms": 1464.9
+    },
+    {
+      "base_users": 20,
+      "cache_hit_rate": null,
+      "db_queries_per_request": 1.804,
+      "degraded": true,
+      "error_rate": 0.0,
+      "feed_p95_ms": 1130.7,
+      "overall_p95_ms": 1347.4,
+      "peak_users": 160,
+      "pool_waiting_max": 30,
+      "reasons": [
+        "feed p95 1130.7 ms >= 500 ms"
+      ],
+      "recovery_seconds": 0.1,
+      "request_rate_per_second": 50.0,
+      "requests": 1500,
+      "run_id": "run_20261111T032847Z",
+      "stats_p95_ms": 1933.6
+    },
+    {
+      "base_users": 30,
+      "cache_hit_rate": null,
+      "db_queries_per_request": 1.791,
+      "degraded": true,
+      "error_rate": 0.0,
+      "feed_p95_ms": 1632.2,
+      "overall_p95_ms": 1668.4,
+      "peak_users": 240,
+      "pool_waiting_max": 30,
+      "reasons": [
+        "feed p95 1632.2 ms >= 500 ms"
+      ],
+      "recovery_seconds": 0.0,
+      "request_rate_per_second": 62.17,
+      "requests": 1865,
+      "run_id": "run_20261111T032931Z",
+      "stats_p95_ms": 2776.9
+    },
+    {
+      "base_users": 40,
+      "cache_hit_rate": null,
+      "db_queries_per_request": 1.803,
+      "degraded": true,
+      "error_rate": 0.0,
+      "feed_p95_ms": 3957.8,
+      "overall_p95_ms": 3962.3,
+      "peak_users": 320,
+      "pool_waiting_max": 30,
+      "reasons": [
+        "feed p95 3957.8 ms >= 500 ms"
+      ],
+      "recovery_seconds": 0.0,
+      "request_rate_per_second": 65.77,
+      "requests": 1973,
+      "run_id": "run_20261111T033014Z",
+      "stats_p95_ms": 4012.2
+    }
+  ]
+}

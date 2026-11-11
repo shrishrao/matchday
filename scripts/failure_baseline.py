@@ -9,6 +9,7 @@ Results only describe the machine they were measured on.
 
 import argparse
 import json
+import re
 import shutil
 import sys
 import time
@@ -76,7 +77,7 @@ def write_json(path: Path, data: dict) -> None:
 
 
 # ===== Commands =====
-def sweep(host: str, levels: list[int]) -> int:
+def sweep(host: str, levels: list[int], folder: Path = BASELINE_FOLDER) -> int:
     """Run a short replay at each load level and report the lowest one that degraded."""
     evaluations = []
     for index, base_users in enumerate(levels):
@@ -90,7 +91,7 @@ def sweep(host: str, levels: list[int]) -> int:
     print_table(evaluations)
     degraded = [e["base_users"] for e in evaluations if e["degraded"]]
     write_json(
-        BASELINE_FOLDER / "sweep.json",
+        folder / "sweep.json",
         {
             "disclaimer": "Traffic is simulated. Short replays used to choose a load level; measured on one machine.",
             "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -101,11 +102,11 @@ def sweep(host: str, levels: list[int]) -> int:
         },
     )
     print(f"Lowest degraded level: {min(degraded) if degraded else 'none of these'}")
-    print(f"Saved: {BASELINE_FOLDER / 'sweep.json'}")
+    print(f"Saved: {folder / 'sweep.json'}")
     return 0
 
 
-def confirm(host: str, base_users: int, repeats: int) -> int:
+def confirm(host: str, base_users: int, repeats: int, folder: Path = BASELINE_FOLDER) -> int:
     """Run full replays at one level, keep their result files, and check that all degraded."""
     evaluations = []
     for index in range(repeats):
@@ -116,16 +117,16 @@ def confirm(host: str, base_users: int, repeats: int) -> int:
         if evaluation is None:
             return 2
         evaluations.append(evaluation)
-        kept_runs = BASELINE_FOLDER / "runs"
+        kept_runs = folder / "runs"
         kept_runs.mkdir(parents=True, exist_ok=True)
         source = run_replay.RUNS_FOLDER / f"{evaluation['run_id']}.json"
         shutil.copyfile(source, kept_runs / source.name)
 
     print_table(evaluations)
     summary = summarize_repeats(evaluations)
-    first_run = json.loads((BASELINE_FOLDER / "runs" / f"{evaluations[0]['run_id']}.json").read_text(encoding="utf-8"))
+    first_run = json.loads((folder / "runs" / f"{evaluations[0]['run_id']}.json").read_text(encoding="utf-8"))
     write_json(
-        BASELINE_FOLDER / "failure_baseline.json",
+        folder / "failure_baseline.json",
         {
             "disclaimer": "Traffic is simulated. StatsBomb provides match events, not platform traffic. "
             "Measured on one machine, with the load generator on the same computer.",
@@ -144,11 +145,18 @@ def confirm(host: str, base_users: int, repeats: int) -> int:
         },
     )
     print(f"Repeatable failure: {summary['repeatable']} ({summary['degraded_runs']} of {summary['runs']} runs degraded)")
-    print(f"Saved: {BASELINE_FOLDER / 'failure_baseline.json'}")
+    print(f"Saved: {folder / 'failure_baseline.json'}")
     return 0 if summary["repeatable"] else 1
 
 
 # ===== Command line =====
+def results_folder(name: str) -> Path:
+    """Return a folder directly under results/, refusing names that could point anywhere else."""
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,40}", name):
+        raise ValueError("The folder name may only use letters, digits, _ and -.")
+    return BASELINE_FOLDER.parent / name
+
+
 def main(argv: list[str] | None = None) -> int:
     """Read the command and options, check them, and run the sweep or confirmation."""
     parser = argparse.ArgumentParser(description="Find and confirm the failure baseline.")
@@ -160,6 +168,9 @@ def main(argv: list[str] | None = None) -> int:
     confirm_parser.add_argument("--repeats", type=int, default=REQUIRED_REPEATS)
     for command in (sweep_parser, confirm_parser):
         command.add_argument("--host", default=run_replay.DEFAULT_HOST)
+        command.add_argument(
+            "--folder", default="baseline", help="folder name under results/ (letters, digits, _ and - only)"
+        )
     arguments = parser.parse_args(argv)
 
     try:
@@ -169,13 +180,14 @@ def main(argv: list[str] | None = None) -> int:
             build_plan(SHORT_REPLAY_SECONDS, level)
         if arguments.command == "confirm" and not 1 <= arguments.repeats <= 10:
             raise ValueError("Repeats must be 1 to 10.")
+        folder = results_folder(arguments.folder)
     except ValueError as error:
         print(f"Refused: {error}")
         return 2
 
     if arguments.command == "sweep":
-        return sweep(host, sorted(set(levels)))
-    return confirm(host, arguments.base_users, arguments.repeats)
+        return sweep(host, sorted(set(levels)), folder)
+    return confirm(host, arguments.base_users, arguments.repeats, folder)
 
 
 if __name__ == "__main__":

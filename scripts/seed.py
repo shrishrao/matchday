@@ -11,7 +11,9 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import psycopg
+import redis
 
+from app.cache import ResponseCache, create_client
 from app.config import PROJECT_ROOT, Settings
 from app.timeline import load_sample, played_clock
 
@@ -115,6 +117,21 @@ def seed_database(
     connection.execute("ANALYZE matches, match_events, fan_reactions")
 
 
+# ===== Cache invalidation =====
+def clear_cache(settings: Settings) -> str:
+    """Remove cached responses, because they describe the data that seeding just replaced.
+
+    This runs even when CACHE_ENABLED is false, since an API started earlier may have the cache on.
+    """
+    cache = ResponseCache(create_client(settings), settings.cache_prefix)
+    try:
+        return f"cache: removed {cache.clear()} entries"
+    except redis.RedisError:
+        return "cache: Redis not reachable, nothing removed (old entries expire within their TTL)"
+    finally:
+        cache.close()
+
+
 # ===== Command line =====
 def main() -> int:
     """Seed the database named in .env and report the row counts."""
@@ -131,6 +148,7 @@ def main() -> int:
         for table in ("matches", "match_events", "fan_reactions"):
             count = connection.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
             print(f"{table}: {count} rows")
+    print(clear_cache(settings))
     return 0
 
 

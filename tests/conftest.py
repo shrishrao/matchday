@@ -21,7 +21,8 @@ def test_settings() -> Settings:
         admin.execute(f"DROP DATABASE IF EXISTS {TEST_DATABASE} WITH (FORCE)")
         admin.execute(f"CREATE DATABASE {TEST_DATABASE}")
 
-    settings = Settings(postgres_db=TEST_DATABASE)
+    # The cache is forced off here, whatever .env says; cache tests turn it on themselves.
+    settings = Settings(postgres_db=TEST_DATABASE, cache_enabled=False)
     with psycopg.connect(settings.conninfo()) as connection:
         seed_database(connection, reactions=TEST_REACTIONS)
     return settings

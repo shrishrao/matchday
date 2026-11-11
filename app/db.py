@@ -1,9 +1,5 @@
-"""The database connection pool, and the request dependency that borrows from it."""
+"""The database connection pool. Routes borrow from it inside their own thread (see app.main)."""
 
-from collections.abc import Iterator
-
-import psycopg
-from fastapi import Request
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
@@ -23,10 +19,3 @@ def create_pool(settings: Settings) -> ConnectionPool:
         check=ConnectionPool.check_connection,
         open=False,
     )
-
-
-# ===== Request dependency =====
-def get_connection(request: Request) -> Iterator[psycopg.Connection]:
-    """Lend a connection for one request, returning it to the pool afterwards."""
-    with request.app.state.pool.connection() as connection:
-        yield connection

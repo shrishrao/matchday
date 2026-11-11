@@ -1,29 +1,36 @@
 # Handoff
 
 ## Current stage and status
-**Stage 6: Failure baseline.** Complete and committed. Stage 7 has not started and needs approval.
+**Stage 7: Cache.** Complete and committed. Stage 8 has not started and needs approval.
 
 GitHub: https://github.com/shrishrao/matchday (private). Commits are pushed only when asked, so check `git status -sb` to see whether `main` is ahead of `origin/main`.
 
 ## Finished and verified
 **Earlier stages**
 - Repo at `C:\dev\matchday`, branch `main`. Python 3.13.7 venv at `.venv`. Docker Desktop 4.98.0.
-- Postgres 18.6 and Redis 8.10.3 run through Compose, healthy, bound to `127.0.0.1`.
+- Postgres 18.6 and Redis 8.10.3 run through Compose, bound to `127.0.0.1`. Redis is capped at 64 MB with `allkeys-lru`.
 - FastAPI app using the real 2022 final (StatsBomb match 3869685), with a deterministic 180-second timeline.
-- Local-only Locust replay, which saves measured results to `results/runs` (git-ignored).
+- Local-only Locust replay, which saves measured results. Failure criteria (D33): feed p95 of at least 500 ms, or at least 1% errors.
 - Machine: 16 logical CPUs, ~24 GB RAM.
 
-**Stage 6**
-- Failure criteria were fixed before tuning (D33): feed p95 of at least 500 ms, or at least 1% errors.
-- Sweep (30-second replays): 5 users healthy, 10 only just degraded, 15 and 20 badly degraded. The request rate falls beyond 10 users.
-- Baseline: **15 base users (peak 120), no protections, degraded in 3 of 3 full replays**. Mean feed p95 10,015 ms (capped by the 10-second request timeout), mean error rate 11.20% (stdev 3.13 points), mean 19.49 requests per second.
-- The failure is explained in `results/baseline/README.md`: slow `/stats` queries hold all 10 pool connections, so fast `/feed` requests queue behind them (head-of-line blocking).
-- Measurement fixes: in-flight requests are now recorded (D34), metrics stay readable under load (D35), recovery time is measured (D36), and the timeline check allows fans finishing their last request (D38).
-- `/internal/metrics` now reports pool size, available connections, waiting requests and failed connection requests.
+**Stage 7**
+- Redis cache-aside for `/matches/{id}`, `/feed` and `/stats`, turned on with `CACHE_ENABLED=true` (off by default). TTLs: match 5 s, feed 2 s, stats 10 s. Each response has an `X-Cache` header: HIT, MISS, OFF or UNAVAILABLE.
+- Invalidation: TTL expiry, `invalidate_match()`, `clear()`, and seeding clears the cache. 404s and invalid requests are never cached.
+- If Redis fails, requests fall back to Postgres. redis-py's default 10 retries are turned off, which cut the wait with Redis down from about 10 s to 0.5 s.
+- `/internal/metrics` reports cache hits, misses and errors, plus which protections are on. Result files take protections from the API and count cache numbers per run.
+- **Bug found and fixed (D39):** routes borrowed connections through a FastAPI `yield` dependency, which starved the thread pool under load. This caused most of the Stage 6 collapse. Routes now borrow inside their own thread.
+- **New unprotected baseline (D41):** 30 base users (`results/baseline_v2`). The Stage 6 files are kept unchanged, with a correction note.
+- **Comparison (`results/cache`), 3 full replays per setting at 30 base users:**
+  - Cache off degraded in 3 of 3 runs, cache on in 1 of 3.
+  - Feed p95: 2,985 ms → 479 ms.
+  - Requests per second: 48.8 → 78.7.
+  - Database queries per request: 1.80 → 0.06.
+  - Hit rate 96.6%.
+  - Up to 30 requests still waited for a connection with the cache on, because of the stats stampede at each 10-second expiry. That is what Stage 8 targets.
 
-## Files changed in Stage 6
-Added: `loadgen/degradation.py`, `scripts/failure_baseline.py`, `tests/test_degradation.py`, and in `results/baseline/`: `README.md`, `sweep.json`, `failure_baseline.json` and `runs/` (3 run files).
-Changed: `app/main.py`, `app/schemas.py`, `loadgen/results.py`, `loadgen/schedule.py`, `loadgen/locustfile.py`, `scripts/run_replay.py`, `tests/test_api.py`, `tests/test_results.py`, `tests/test_replay_shape.py`, `PLAN.md`, `HANDOFF.md`, `DECISIONS.md`.
+## Files changed in Stage 7
+Added: `app/cache.py`, `scripts/compare_cache.py`, `tests/test_cache.py`, `tests/test_compare_cache.py`, `results/baseline_v2/` (README, sweep), `results/cache/` (README, comparison, six run files, smoke test).
+Changed: `app/config.py`, `app/db.py`, `app/main.py`, `app/metrics.py`, `app/schemas.py`, `docker-compose.yml`, `.env.example`, `loadgen/results.py`, `loadgen/degradation.py`, `scripts/run_replay.py`, `scripts/failure_baseline.py` (`--folder`), `scripts/seed.py`, `results/baseline/README.md`, tests, `PLAN.md`, `HANDOFF.md`, `DECISIONS.md`.
 
 ## Commands that work (PowerShell, from `C:\dev\matchday`)
 ```powershell
@@ -31,30 +38,31 @@ Changed: `app/main.py`, `app/schemas.py`, `loadgen/results.py`, `loadgen/schedul
 docker compose up -d --wait
 python -m scripts.seed
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
-python -m scripts.run_replay --short
-python -m scripts.run_replay --base-users 15
-python -m scripts.failure_baseline sweep --base-users 5 10 15 20
-python -m scripts.failure_baseline confirm --base-users 15
+$env:CACHE_ENABLED = "true"; python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+python -m scripts.run_replay --short --base-users 30
+python -m scripts.compare_cache --base-users 30 --repeats 3
+python -m scripts.failure_baseline sweep --base-users 15 20 30 40 --folder baseline_v2
 python -m pytest -q
 docker compose down
 ```
-Run the API in one terminal and replays in another. Restart the API after code changes. A replay where requests fail exits with code 1, which is expected at 15 base users.
+`compare_cache` starts its own API, so stop yours first. In a PowerShell window, `$env:CACHE_ENABLED` stays set until you close it or run `Remove-Item Env:CACHE_ENABLED`.
 
 ## Test results
-`python -m pytest -q`: 274 passed in 79.09s, no warnings. Docker services must be running.
+`python -m pytest -q`: 342 passed in 106.96s. Docker services must be running.
 
 ## Known problems
-- The feed p95 under overload is capped by the 10-second request timeout, so it understates the real wait.
-- The full replay ends on quiet post-match traffic, so measured recovery is 0 s. A replay ending on a spike would show recovery better.
-- After a database restart, a full pool of dead connections can return about two 503s (D32).
-- Locust and the API share this computer's CPU (D25).
-- Claude's own shell may not have `docker` on PATH until the app restarts.
+- With the cache on, the stats entry stampedes every 10 seconds. This is expected until Stage 8.
+- With Redis down, every request still waits for one Redis timeout (up to 0.5 s). There is no circuit breaker (D40).
+- Within a TTL, changed data is served stale unless it is invalidated.
+- Feed p95 under heavy overload can reach the 10-second request timeout, which understates the real wait.
+- Locust and the API share this computer's CPU (D25). Run-to-run spread is large, as runs 5 and 6 of the comparison show.
+- Claude's own shell may not have `docker` on PATH. Docker Desktop may need starting after a reboot.
 
 ## Decisions
-See DECISIONS.md D1–D38.
+See DECISIONS.md D1–D42.
 
 ## Exact next step
-Show the Stage 7 plan (Redis cache behind an on/off setting, invalidation tests, and the same replay compared with the cache on and off, using the Stage 6 baseline) and wait for approval.
+Show the Stage 8 plan (stampede protection: refill lock, expiry, failed refresh) and wait for approval. Compare at 30 base users against the cache-only results.
 
 ## Resume prompt
 ```

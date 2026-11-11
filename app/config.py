@@ -3,7 +3,7 @@
 from pathlib import Path
 
 from psycopg.conninfo import make_conninfo
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -24,6 +24,27 @@ class Settings(BaseSettings):
     pool_min_size: int = Field(default=2, ge=1)
     pool_max_size: int = Field(default=10, ge=1)
     pool_timeout_seconds: float = Field(default=5.0, gt=0)
+
+    # ===== Redis =====
+    redis_host: str = Field(default="127.0.0.1", min_length=1)
+    redis_port: int = Field(default=6379, ge=1, le=65535)
+    redis_password: SecretStr | None = None
+    redis_timeout_seconds: float = Field(default=0.5, gt=0, le=5)
+
+    # ===== Cache (Stage 7) =====
+    cache_enabled: bool = False
+    # The prefix is used in Redis key patterns, so it may not contain pattern characters like * or ?.
+    cache_prefix: str = Field(default="matchday:v1", pattern=r"^[a-z0-9_-]+(:[a-z0-9_-]+)*$", max_length=64)
+    cache_ttl_match_seconds: int = Field(default=5, ge=1, le=3600)
+    cache_ttl_feed_seconds: int = Field(default=2, ge=1, le=3600)
+    cache_ttl_stats_seconds: int = Field(default=10, ge=1, le=3600)
+
+    @model_validator(mode="after")
+    def cache_needs_redis_password(self) -> "Settings":
+        """Refuse to start with the cache on but no Redis password, since local Redis requires one."""
+        if self.cache_enabled and not self.redis_password:
+            raise ValueError("CACHE_ENABLED is true, so REDIS_PASSWORD must be set in .env.")
+        return self
 
     def conninfo(self) -> str:
         """Build the Postgres connection string."""

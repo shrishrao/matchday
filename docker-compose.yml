@@ -23,6 +23,8 @@ services:
       start_period: 10s
 
   # ===== Redis: a disposable cache, so nothing is saved to disk =====
+  # Memory is capped and the least recently used keys are dropped first, so many
+  # different feed queries cannot fill memory.
   redis:
     image: redis:8.10.3-alpine
     environment:
@@ -30,7 +32,7 @@ services:
     command:
       - sh
       - -c
-      - exec redis-server --requirepass "$$REDIS_PASSWORD" --save "" --appendonly no
+      - exec redis-server --requirepass "$$REDIS_PASSWORD" --save "" --appendonly no --maxmemory 64mb --maxmemory-policy allkeys-lru
     ports:
       - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     healthcheck:

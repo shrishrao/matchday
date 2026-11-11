@@ -1,5 +1,7 @@
 # Failure baseline (Stage 6)
 
+> **Stage 7 correction.** These measurements are real, but much of this collapse came from a bug found in Stage 7: each route borrowed its database connection through a FastAPI `yield` dependency, which needs a second worker thread to hand the connection back. When all 40 threads were waiting for a connection, none could be returned (thread-pool starvation; see DECISIONS.md D39). With that fixed, 15 base users is only borderline: feed p95 about 400–490 ms, no errors. The files here are kept unchanged as a record. Protections are now compared against `results/baseline_v2` (D41).
+
 > Traffic is simulated. StatsBomb provides the match events, not platform traffic. All numbers were measured on one machine (16 logical CPUs, about 24 GB RAM, Windows 11, Docker Desktop), with the load generator on the same computer as the API. They are not a prediction for any other setup.
 
 ## Result
@@ -44,7 +46,7 @@ Each step below leads to the next:
 4. **The queue turns into failures.** A request waiting more than 5 s for a connection gets a 503 (hundreds per run). A fan waiting more than 10 s gives up, and the server keeps working on that request anyway.
 5. **Throughput collapses.** Fans wait for each reply, so slow replies mean fewer requests are completed per second.
 
-This is **head-of-line blocking**: cheap requests stuck behind expensive ones. Each protection that follows targets one part of this chain:
+This is **head-of-line blocking**: cheap requests stuck behind expensive ones. Stage 7 found a second cause that made step 4 far worse: thread-pool starvation (see the correction at the top). Each protection that follows targets one part of this chain:
 - **Cache (Stage 7):** stops repeating the slow query.
 - **Stampede lock (Stage 8):** stops many requests refilling the same cache entry at once.
 - **Rate limiting (Stage 9):** caps how fast requests can arrive.

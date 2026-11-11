@@ -1,0 +1,365 @@
+{
+  "change_off_to_on": {
+    "db_queries_per_request": {
+      "off": 1.7987,
+      "on": 0.062,
+      "ratio_on_to_off": 0.0345
+    },
+    "error_rate": {
+      "off": 0.0,
+      "on": 0.0002,
+      "ratio_on_to_off": null
+    },
+    "feed_p95_ms": {
+      "off": 2985.3333,
+      "on": 479.0333,
+      "ratio_on_to_off": 0.1605
+    },
+    "overall_p95_ms": {
+      "off": 3271.0,
+      "on": 694.4667,
+      "ratio_on_to_off": 0.2123
+    },
+    "pool_waiting_max": {
+      "off": 30.0,
+      "on": 30.0,
+      "ratio_on_to_off": 1.0
+    },
+    "request_rate_per_second": {
+      "off": 48.8133,
+      "on": 78.7033,
+      "ratio_on_to_off": 1.6123
+    },
+    "stats_p95_ms": {
+      "off": 4394.8667,
+      "on": 2547.2,
+      "ratio_on_to_off": 0.5796
+    }
+  },
+  "created_at": "2026-11-11T03:50:49+00:00",
+  "criteria": {
+    "feed_p95_ms_at_least": 500.0,
+    "fixed_before_tuning": true,
+    "or_error_rate_at_least": 0.01,
+    "repeats_required": 3
+  },
+  "disclaimer": "Traffic is simulated. StatsBomb provides match events, not platform traffic. Measured on one machine, with the load generator on the same computer.",
+  "runs": {
+    "off": [
+      {
+        "base_users": 30,
+        "cache": "off",
+        "cache_hit_rate": null,
+        "db_queries_per_request": 1.799,
+        "degraded": true,
+        "error_rate": 0.0,
+        "feed_p95_ms": 2149.1,
+        "overall_p95_ms": 2416.5,
+        "peak_users": 240,
+        "pool_waiting_max": 30,
+        "reasons": [
+          "feed p95 2149.1 ms >= 500 ms"
+        ],
+        "recovery_seconds": 0.0,
+        "request_rate_per_second": 53.21,
+        "requests": 9631,
+        "run_id": "run_20261111T033112Z",
+        "stats_p95_ms": 3195.4
+      },
+      {
+        "base_users": 30,
+        "cache": "off",
+        "cache_hit_rate": null,
+        "db_queries_per_request": 1.796,
+        "degraded": true,
+        "error_rate": 0.0,
+        "feed_p95_ms": 2336.5,
+        "overall_p95_ms": 2566.7,
+        "peak_users": 240,
+        "pool_waiting_max": 30,
+        "reasons": [
+          "feed p95 2336.5 ms >= 500 ms"
+        ],
+        "recovery_seconds": 0.1,
+        "request_rate_per_second": 53.32,
+        "requests": 9651,
+        "run_id": "run_20261111T033747Z",
+        "stats_p95_ms": 3394.0
+      },
+      {
+        "base_users": 30,
+        "cache": "off",
+        "cache_hit_rate": null,
+        "db_queries_per_request": 1.801,
+        "degraded": true,
+        "error_rate": 0.0001,
+        "feed_p95_ms": 4470.4,
+        "overall_p95_ms": 4829.8,
+        "peak_users": 240,
+        "pool_waiting_max": 30,
+        "reasons": [
+          "feed p95 4470.4 ms >= 500 ms"
+        ],
+        "recovery_seconds": 0.0,
+        "request_rate_per_second": 39.91,
+        "requests": 7223,
+        "run_id": "run_20261111T034423Z",
+        "stats_p95_ms": 6595.2
+      }
+    ],
+    "on": [
+      {
+        "base_users": 30,
+        "cache": "on",
+        "cache_hit_rate": 0.9731,
+        "db_queries_per_request": 0.05,
+        "degraded": false,
+        "error_rate": 0.0,
+        "feed_p95_ms": 161.1,
+        "overall_p95_ms": 187.0,
+        "peak_users": 240,
+        "pool_waiting_max": 30,
+        "reasons": [],
+        "recovery_seconds": 0.0,
+        "request_rate_per_second": 83.03,
+        "requests": 15028,
+        "run_id": "run_20261111T033429Z",
+        "stats_p95_ms": 1090.3
+      },
+      {
+        "base_users": 30,
+        "cache": "on",
+        "cache_hit_rate": 0.9671,
+        "db_queries_per_request": 0.06,
+        "degraded": false,
+        "error_rate": 0.0,
+        "feed_p95_ms": 205.1,
+        "overall_p95_ms": 235.3,
+        "peak_users": 240,
+        "pool_waiting_max": 30,
+        "reasons": [],
+        "recovery_seconds": 0.0,
+        "request_rate_per_second": 82.07,
+        "requests": 14855,
+        "run_id": "run_20261111T034104Z",
+        "stats_p95_ms": 1650.8
+      },
+      {
+        "base_users": 30,
+        "cache": "on",
+        "cache_hit_rate": 0.9581,
+        "db_queries_per_request": 0.076,
+        "degraded": true,
+        "error_rate": 0.0006,
+        "feed_p95_ms": 1070.9,
+        "overall_p95_ms": 1661.1,
+        "peak_users": 240,
+        "pool_waiting_max": 30,
+        "reasons": [
+          "feed p95 1070.9 ms >= 500 ms"
+        ],
+        "recovery_seconds": 0.1,
+        "request_rate_per_second": 71.01,
+        "requests": 12853,
+        "run_id": "run_20261111T034744Z",
+        "stats_p95_ms": 4900.5
+      }
+    ]
+  },
+  "settings": {
+    "base_users": 30,
+    "cache_ttl_seconds": {
+      "feed": 2,
+      "match": 5,
+      "stats": 10
+    },
+    "order": [
+      "off",
+      "on",
+      "off",
+      "on",
+      "off",
+      "on"
+    ],
+    "repeats_per_setting": 3,
+    "replay_seconds": 180
+  },
+  "stage6_baseline_summary": {
+    "degraded_runs": 3,
+    "error_rate": {
+      "max": 0.1435,
+      "mean": 0.112,
+      "min": 0.0809,
+      "runs": 3,
+      "stdev": 0.0313
+    },
+    "feed_p95_ms": {
+      "max": 10032.6,
+      "mean": 10015.1667,
+      "min": 10001.9,
+      "runs": 3,
+      "stdev": 15.7684
+    },
+    "pool_waiting_max": {
+      "max": 84,
+      "mean": 73.0,
+      "min": 67,
+      "runs": 3,
+      "stdev": 9.5394
+    },
+    "recovery_seconds": {
+      "max": 0.0,
+      "mean": 0.0,
+      "min": 0.0,
+      "runs": 3,
+      "stdev": 0.0
+    },
+    "repeatable": true,
+    "request_rate_per_second": {
+      "max": 22.4,
+      "mean": 19.49,
+      "min": 17.35,
+      "runs": 3,
+      "stdev": 2.6116
+    },
+    "runs": 3
+  },
+  "summary": {
+    "off": {
+      "cache_hit_rate": {
+        "max": null,
+        "mean": null,
+        "min": null,
+        "runs": 0,
+        "stdev": null
+      },
+      "db_queries_per_request": {
+        "max": 1.801,
+        "mean": 1.7987,
+        "min": 1.796,
+        "runs": 3,
+        "stdev": 0.0025
+      },
+      "degraded_runs": 3,
+      "error_rate": {
+        "max": 0.0001,
+        "mean": 0.0,
+        "min": 0.0,
+        "runs": 3,
+        "stdev": 0.0001
+      },
+      "feed_p95_ms": {
+        "max": 4470.4,
+        "mean": 2985.3333,
+        "min": 2149.1,
+        "runs": 3,
+        "stdev": 1289.5142
+      },
+      "overall_p95_ms": {
+        "max": 4829.8,
+        "mean": 3271.0,
+        "min": 2416.5,
+        "runs": 3,
+        "stdev": 1352.0477
+      },
+      "pool_waiting_max": {
+        "max": 30,
+        "mean": 30.0,
+        "min": 30,
+        "runs": 3,
+        "stdev": 0.0
+      },
+      "recovery_seconds": {
+        "max": 0.1,
+        "mean": 0.0333,
+        "min": 0.0,
+        "runs": 3,
+        "stdev": 0.0577
+      },
+      "repeatable": true,
+      "request_rate_per_second": {
+        "max": 53.32,
+        "mean": 48.8133,
+        "min": 39.91,
+        "runs": 3,
+        "stdev": 7.7107
+      },
+      "runs": 3,
+      "stats_p95_ms": {
+        "max": 6595.2,
+        "mean": 4394.8667,
+        "min": 3195.4,
+        "runs": 3,
+        "stdev": 1908.1301
+      }
+    },
+    "on": {
+      "cache_hit_rate": {
+        "max": 0.9731,
+        "mean": 0.9661,
+        "min": 0.9581,
+        "runs": 3,
+        "stdev": 0.0075
+      },
+      "db_queries_per_request": {
+        "max": 0.076,
+        "mean": 0.062,
+        "min": 0.05,
+        "runs": 3,
+        "stdev": 0.0131
+      },
+      "degraded_runs": 1,
+      "error_rate": {
+        "max": 0.0006,
+        "mean": 0.0002,
+        "min": 0.0,
+        "runs": 3,
+        "stdev": 0.0003
+      },
+      "feed_p95_ms": {
+        "max": 1070.9,
+        "mean": 479.0333,
+        "min": 161.1,
+        "runs": 3,
+        "stdev": 513.0435
+      },
+      "overall_p95_ms": {
+        "max": 1661.1,
+        "mean": 694.4667,
+        "min": 187.0,
+        "runs": 3,
+        "stdev": 837.4773
+      },
+      "pool_waiting_max": {
+        "max": 30,
+        "mean": 30.0,
+        "min": 30,
+        "runs": 3,
+        "stdev": 0.0
+      },
+      "recovery_seconds": {
+        "max": 0.1,
+        "mean": 0.0333,
+        "min": 0.0,
+        "runs": 3,
+        "stdev": 0.0577
+      },
+      "repeatable": false,
+      "request_rate_per_second": {
+        "max": 83.03,
+        "mean": 78.7033,
+        "min": 71.01,
+        "runs": 3,
+        "stdev": 6.6799
+      },
+      "runs": 3,
+      "stats_p95_ms": {
+        "max": 4900.5,
+        "mean": 2547.2,
+        "min": 1090.3,
+        "runs": 3,
+        "stdev": 2057.1961
+      }
+    }
+  }
+}

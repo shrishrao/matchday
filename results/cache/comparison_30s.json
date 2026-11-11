@@ -1,0 +1,281 @@
+{
+  "change_off_to_on": {
+    "db_queries_per_request": {
+      "off": 1.793,
+      "on": 0.067,
+      "ratio_on_to_off": 0.0374
+    },
+    "error_rate": {
+      "off": 0.0,
+      "on": 0.0,
+      "ratio_on_to_off": null
+    },
+    "feed_p95_ms": {
+      "off": 267.4,
+      "on": 77.7,
+      "ratio_on_to_off": 0.2906
+    },
+    "overall_p95_ms": {
+      "off": 825.5,
+      "on": 77.7,
+      "ratio_on_to_off": 0.0941
+    },
+    "pool_waiting_max": {
+      "off": 27.0,
+      "on": 0.0,
+      "ratio_on_to_off": 0.0
+    },
+    "request_rate_per_second": {
+      "off": 41.97,
+      "on": 46.13,
+      "ratio_on_to_off": 1.0991
+    },
+    "stats_p95_ms": {
+      "off": 1207.2,
+      "on": 745.6,
+      "ratio_on_to_off": 0.6176
+    }
+  },
+  "created_at": "2026-11-11T03:20:59+00:00",
+  "criteria": {
+    "feed_p95_ms_at_least": 500.0,
+    "fixed_before_tuning": true,
+    "or_error_rate_at_least": 0.01,
+    "repeats_required": 3
+  },
+  "disclaimer": "Traffic is simulated. StatsBomb provides match events, not platform traffic. Measured on one machine, with the load generator on the same computer.",
+  "runs": {
+    "off": [
+      {
+        "base_users": 15,
+        "cache": "off",
+        "cache_hit_rate": null,
+        "db_queries_per_request": 1.793,
+        "degraded": false,
+        "error_rate": 0.0,
+        "feed_p95_ms": 267.4,
+        "overall_p95_ms": 825.5,
+        "peak_users": 120,
+        "pool_waiting_max": 27,
+        "reasons": [],
+        "recovery_seconds": 0.0,
+        "request_rate_per_second": 41.97,
+        "requests": 1259,
+        "run_id": "run_20261111T031941Z",
+        "stats_p95_ms": 1207.2
+      }
+    ],
+    "on": [
+      {
+        "base_users": 15,
+        "cache": "on",
+        "cache_hit_rate": 0.9639,
+        "db_queries_per_request": 0.067,
+        "degraded": false,
+        "error_rate": 0.0,
+        "feed_p95_ms": 77.7,
+        "overall_p95_ms": 77.7,
+        "peak_users": 120,
+        "pool_waiting_max": 0,
+        "reasons": [],
+        "recovery_seconds": 0.0,
+        "request_rate_per_second": 46.13,
+        "requests": 1384,
+        "run_id": "run_20261111T032027Z",
+        "stats_p95_ms": 745.6
+      }
+    ]
+  },
+  "settings": {
+    "base_users": 15,
+    "cache_ttl_seconds": {
+      "feed": 2,
+      "match": 5,
+      "stats": 10
+    },
+    "order": [
+      "off",
+      "on"
+    ],
+    "repeats_per_setting": 1,
+    "replay_seconds": 30
+  },
+  "stage6_baseline_summary": {
+    "degraded_runs": 3,
+    "error_rate": {
+      "max": 0.1435,
+      "mean": 0.112,
+      "min": 0.0809,
+      "runs": 3,
+      "stdev": 0.0313
+    },
+    "feed_p95_ms": {
+      "max": 10032.6,
+      "mean": 10015.1667,
+      "min": 10001.9,
+      "runs": 3,
+      "stdev": 15.7684
+    },
+    "pool_waiting_max": {
+      "max": 84,
+      "mean": 73.0,
+      "min": 67,
+      "runs": 3,
+      "stdev": 9.5394
+    },
+    "recovery_seconds": {
+      "max": 0.0,
+      "mean": 0.0,
+      "min": 0.0,
+      "runs": 3,
+      "stdev": 0.0
+    },
+    "repeatable": true,
+    "request_rate_per_second": {
+      "max": 22.4,
+      "mean": 19.49,
+      "min": 17.35,
+      "runs": 3,
+      "stdev": 2.6116
+    },
+    "runs": 3
+  },
+  "summary": {
+    "off": {
+      "cache_hit_rate": {
+        "max": null,
+        "mean": null,
+        "min": null,
+        "runs": 0,
+        "stdev": null
+      },
+      "db_queries_per_request": {
+        "max": 1.793,
+        "mean": 1.793,
+        "min": 1.793,
+        "runs": 1,
+        "stdev": null
+      },
+      "degraded_runs": 0,
+      "error_rate": {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "runs": 1,
+        "stdev": null
+      },
+      "feed_p95_ms": {
+        "max": 267.4,
+        "mean": 267.4,
+        "min": 267.4,
+        "runs": 1,
+        "stdev": null
+      },
+      "overall_p95_ms": {
+        "max": 825.5,
+        "mean": 825.5,
+        "min": 825.5,
+        "runs": 1,
+        "stdev": null
+      },
+      "pool_waiting_max": {
+        "max": 27,
+        "mean": 27.0,
+        "min": 27,
+        "runs": 1,
+        "stdev": null
+      },
+      "recovery_seconds": {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "runs": 1,
+        "stdev": null
+      },
+      "repeatable": false,
+      "request_rate_per_second": {
+        "max": 41.97,
+        "mean": 41.97,
+        "min": 41.97,
+        "runs": 1,
+        "stdev": null
+      },
+      "runs": 1,
+      "stats_p95_ms": {
+        "max": 1207.2,
+        "mean": 1207.2,
+        "min": 1207.2,
+        "runs": 1,
+        "stdev": null
+      }
+    },
+    "on": {
+      "cache_hit_rate": {
+        "max": 0.9639,
+        "mean": 0.9639,
+        "min": 0.9639,
+        "runs": 1,
+        "stdev": null
+      },
+      "db_queries_per_request": {
+        "max": 0.067,
+        "mean": 0.067,
+        "min": 0.067,
+        "runs": 1,
+        "stdev": null
+      },
+      "degraded_runs": 0,
+      "error_rate": {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "runs": 1,
+        "stdev": null
+      },
+      "feed_p95_ms": {
+        "max": 77.7,
+        "mean": 77.7,
+        "min": 77.7,
+        "runs": 1,
+        "stdev": null
+      },
+      "overall_p95_ms": {
+        "max": 77.7,
+        "mean": 77.7,
+        "min": 77.7,
+        "runs": 1,
+        "stdev": null
+      },
+      "pool_waiting_max": {
+        "max": 0,
+        "mean": 0.0,
+        "min": 0,
+        "runs": 1,
+        "stdev": null
+      },
+      "recovery_seconds": {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "runs": 1,
+        "stdev": null
+      },
+      "repeatable": false,
+      "request_rate_per_second": {
+        "max": 46.13,
+        "mean": 46.13,
+        "min": 46.13,
+        "runs": 1,
+        "stdev": null
+      },
+      "runs": 1,
+      "stats_p95_ms": {
+        "max": 745.6,
+        "mean": 745.6,
+        "min": 745.6,
+        "runs": 1,
+        "stdev": null
+      }
+    }
+  }
+}

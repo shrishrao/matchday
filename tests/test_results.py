@@ -216,3 +216,36 @@ def test_result_format_rejects_unknown_fields():
     data["invented_metric"] = 1
     with pytest.raises(ValidationError):
         RunResult.model_validate(data)
+
+
+# ===== Cache use per run =====
+def cache_sample(time, hits, misses, errors=0):
+    """Build a reading from an API with the cache on."""
+    return {"time": time, "db_queries_total": 0,
+            "cache": {"enabled": True, "hits": hits, "misses": misses, "errors": errors}}
+
+
+def test_cache_counts_cover_only_this_run():
+    # The API's counters are totals since it started, so a second run must subtract the first reading.
+    run = result(samples=[cache_sample(START, 100, 50, 2), cache_sample(START + 3, 190, 60, 2)])
+    assert (run.cache.hits, run.cache.misses, run.cache.errors) == (90, 10, 0)
+    assert run.cache.hit_rate == 0.9
+
+
+def test_cache_hit_rate_needs_two_readings():
+    run = result(samples=[cache_sample(START, 5, 5)])
+    assert run.cache.enabled is True
+    assert run.cache.hit_rate is None
+
+
+def test_cache_with_no_lookups_has_no_hit_rate():
+    run = result(samples=[cache_sample(START, 5, 5), cache_sample(START + 3, 5, 5)])
+    assert run.cache.hits == 0
+    assert run.cache.hit_rate is None
+
+
+def test_results_saved_before_stage_7_still_load():
+    from pathlib import Path
+
+    for path in Path("results/baseline/runs").glob("*.json"):
+        assert RunResult.model_validate_json(path.read_text(encoding="utf-8")).cache.errors is None

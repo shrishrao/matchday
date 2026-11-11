@@ -283,7 +283,9 @@ def test_real_replay_saves_a_measured_result(live_api, tmp_path, monkeypatch, ca
     assert result.database.queries > 0
     assert result.cache.hit_rate is None
     assert result.settings["timeline_fingerprint"] == plan.timeline_fingerprint
-    assert result.settings["protections"] == run_replay.PROTECTIONS
+    assert result.settings["protections"] == {
+        "cache": False, "stampede_lock": False, "rate_limit": False, "load_shedding": False
+    }
     assert sum(row.requests for row in result.seconds) <= result.overall.requests
 
 
@@ -302,3 +304,14 @@ def test_plan_records_the_fingerprint_of_its_own_timeline():
 
     assert full.timeline_fingerprint == fingerprint(timeline)
     assert build_plan(30, 5).timeline_fingerprint != full.timeline_fingerprint
+
+
+# ===== Protections =====
+def test_protections_come_from_the_api():
+    samples = [{"protections": {"cache": True, "stampede_lock": False, "rate_limit": False, "load_shedding": False}}]
+    assert run_replay.protections_from(samples)["cache"] is True
+
+
+def test_unreported_protections_are_unknown_not_off():
+    assert run_replay.protections_from([{}]) == dict.fromkeys(run_replay.PROTECTION_NAMES)
+    assert run_replay.protections_from([]) == dict.fromkeys(run_replay.PROTECTION_NAMES)

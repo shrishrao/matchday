@@ -174,3 +174,21 @@ def test_run_stops_if_the_api_never_recovers(fake_runs, monkeypatch, capsys):
 def test_invalid_options_are_refused(fake_runs, arguments, capsys):
     assert failure_baseline.main(arguments) == 2
     assert "Refused" in capsys.readouterr().out
+
+
+# ===== Results folder =====
+@pytest.mark.parametrize("name", ["../outside", "a/b", "a\b", "", "x" * 41, "results:1"])
+def test_results_folder_refuses_unsafe_names(name):
+    with pytest.raises(ValueError):
+        failure_baseline.results_folder(name)
+
+
+def test_results_folder_stays_under_results():
+    folder = failure_baseline.results_folder("baseline_v2")
+    assert folder.parent == failure_baseline.BASELINE_FOLDER.parent
+    assert folder.name == "baseline_v2"
+
+
+def test_baseline_command_refuses_unsafe_folder(capsys):
+    assert failure_baseline.main(["sweep", "--base-users", "5", "--folder", "../x"]) == 2
+    assert "Refused" in capsys.readouterr().out
