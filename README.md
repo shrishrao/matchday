@@ -4,9 +4,6 @@ Matchday replays one football match as **simulated** traffic against a small bac
 
 > **Important:** the traffic is simulated. StatsBomb open data provides the match **events** (goals, breaks, full-time) that shape the traffic. It does not provide real platform traffic. Spike sizes, break lengths and fan reactions are assumptions or generated data.
 
-## Status
-
-Work in progress. See [PLAN.md](PLAN.md) for stage status and [HANDOFF.md](HANDOFF.md) for the current state.
 
 ## Stack
 
